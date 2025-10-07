@@ -1,0 +1,209 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=delete,stat_1,stat_minus_1");
+
+.material-symbols-outlined {
+  font-variation-settings:
+  'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24
+}
+
+:root {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #ffffff;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.small-text {
+  font-size: 0.8rem;
+}
+
+.product-card, .product-card::before, .product-card:not(.btn) {
+  transition: all 0.2s ease-in-out;
+}
+
+.product-card {
+  --bs-card-border-radius: 12px;
+  --bs-card-box-shadow: 0 0 0 1px rgba(210, 210, 210, 0.5);
+  overflow: hidden;
+}
+
+.product-card a {
+  text-decoration: none;
+}
+
+.product-card:hover {
+  --bs-card-box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.1);
+  --bs-card-color: #68bb79
+}
+
+.product-card:active, .product-card:focus {
+  --bs-card-box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.3);
+}
+
+.product-card-img {
+  position: relative;
+  display: flex;
+}
+
+.product-card-img img {
+  width: 200px;
+  height: 300px;
+  object-fit: cover;
+  transition: transform 0.2s;
+}
+
+.product-card-img:hover img {
+  transform: scale(1.5);
+  object-fit: scale-down;
+}
+
+.product-card-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 25px 0 25px;
+  flex-grow: 1;
+}
+
+.product-card-title {
+  margin-bottom:11px;
+  color: #161616;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 125%;
+}
+
+.product-card-title:hover, .product-card:hover .product-card-title {
+  color: #68bb79;
+}
+
+.product-card-title:active, .product-card:active .product-card-title, .product-card-title:focus, .product-card:focus .product-card-title {
+  color: #29803b;
+}
+
+.product-card-title::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.product-card-desc {
+  --lines-count: 5;
+  margin-bottom: 11px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 120%;
+  display: -webkit-box;
+  -webkit-line-clamp: var(--lines-count);
+  line-clamp: var(--lines-count);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-card-desc:hover, .product-card:hover .product-card-desc {
+  overflow: visible;
+  height: auto;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  text-overflow: none;
+}
+
+.product-card-price {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.product-card-btn {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.product-card-btn > .btn_product {
+   position: relative;
+}
+
+.product-card-btn:hover > .btn_product {
+  --bs-btn-color: #68bb79;
+  --bs-btn-border-width: 1px;
+  border-style:solid;
+  --bs-btn-border-color: #68bb79;
+}
+
+
+
+.btn {
+  position: relative !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  --bs-btn-box-shadow: none;
+  white-space: nowrap !important;
+  --bs-btn-color: #b7b7b7;
+  --bs-btn-bg: transparent;
+  --bs-btn-border-width: 1px;
+  border-style: solid !important;
+  --bs-btn-border-color: #b7b7b7;
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-padding-x: 24px;
+  --bs-btn-padding-y: 0;
+  --bs-btn-border-radius: 9999px;
+  --bs-btn-font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  --bs-btn-font-weight: 500;
+  --bs-btn-font-size: 14px;
+  --bs-btn-line-height: 18px;
+  transition-property: color, background-color, border-color, opacity, box-shadow !important;
+  transition-duration: .5s !important;
+  transition-timing-function: ease-in-out !important;
+}
+
+.btn:focus {
+  outline: none !important;
+}
+
+.btn:hover {
+  --bs-btn-color: #ffffff;
+  --bs-btn-border-width: 0;
+  --bs-btn-border-radius: 0;
+  --bs-btn-padding-x: 25px;
+  --bs-btn-bg: linear-gradient(135deg, #29803b 0%, #68bb79 100%);
+}
+
+.btn:active, .btn:focus {
+  --bs-btn-color: #ffffff;
+  --bs-btn-border-color: transparent;
+  --bs-btn-padding-x: 25px;
+  background: #29803b;
+}
+
+.cart-btn {
+  position: relative;
+  width: 30px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #68bb79;
+  color: #ffffff;
+}
+
+.cart-btn:hover {
+  background-color: #29803b;
+  
+}
