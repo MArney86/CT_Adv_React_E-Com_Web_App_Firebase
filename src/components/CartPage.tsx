@@ -40,23 +40,43 @@ const CartPage = () => {
         })
 
     const handleCouponCode = () => {
-        couponCodes.filter((code: CouponCode) => {
-            if (code.code === couponCode) {
-                if (!code.isActive) {
-                    setCodeError('This coupon code is not active.');
-                    return;
-                }
-                if (code.expiryDate && new Date(code.expiryDate) < new Date()) {
-                    setCodeError('This coupon code has expired.');
-                    dispatch({
-                        type: 'coupons/setInactive',
-                        payload: code.id
-                    })
-                    return;
-                }
-                setCouponDiscount(code.discount);
-            }
-        })
+        setCodeError(''); // Clear previous errors
+        const foundCoupon = couponCodes.find((code: CouponCode) => code.code === couponCode);
+        
+        if (!foundCoupon) {
+            setCodeError('Coupon code not found.');
+            return;
+        }
+
+        if (!foundCoupon.is_active) {
+            setCodeError('This coupon code is not active.');
+            return;
+        }
+
+        if (foundCoupon.expiry_date.is_set && new Date(foundCoupon.expiry_date.date) < new Date()) {
+            setCodeError('This coupon code has expired.');
+            // Update coupon status to inactive
+            dispatch({
+                type: 'coupons/updateCouponStatus',
+                payload: { couponId: foundCoupon.id, isActive: false }
+            });
+            return;
+        }
+
+        // Check minimum purchase requirement
+        const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+        if (foundCoupon.min_purchase.is_set && subtotal < foundCoupon.min_purchase.value) {
+            setCodeError(`Minimum purchase of $${foundCoupon.min_purchase.value.toFixed(2)} required.`);
+            return;
+        }
+
+        // Calculate discount
+        const discountAmount = foundCoupon.is_percentage 
+            ? (subtotal * foundCoupon.discount) / 100
+            : foundCoupon.discount;
+            
+        setCouponDiscount(discountAmount);
+        setCodeError(''); // Clear any errors
     }
 
     const handleCheckout = () => {

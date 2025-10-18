@@ -2,25 +2,39 @@ import Products from "../query/Products";
 import Container from 'react-bootstrap/Container';
 import { Col, Row } from "react-bootstrap";
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 
 const Home: React.FC = () => {
     const [category, setCategory] = useState<string>("All");
-    const [categories, setCategories] = useState<string[]>([]);
 
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await axios.get("https://fakestoreapi.com/products/categories");
-                setCategories(response.data);
-            } catch (error) {
-                console.error("Error fetching categories:", error);
-            }
-        };
+    const { data: categories, isLoading, error } = useQuery<string[], Error>({
+        queryKey: ['categories'],
+        queryFn: async () => {
+            const response = await axios.get("https://fakestoreapi.com/products/categories");
+            return response.data;
+        }
+    });
 
-        fetchCategories();
-    }, []);
+    if (isLoading) {
+        return (
+            <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+                <div>Loading categories...</div>
+            </Container>
+        );
+    }
+
+    if (error) {
+        const errorMessage = error.message.includes('timeout') 
+            ? 'Connection timeout. Please check your internet connection and try again.'
+            : `Error: ${error.message}`;
+        return (
+            <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+                <div className="text-danger">{errorMessage}</div>
+            </Container>
+        );
+    }
 
 
 
@@ -38,9 +52,9 @@ const Home: React.FC = () => {
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}>
                             <option value="All">All</option>
-                            {categories.map((cat: string, index: number) => (
+                            {categories?.map((cat: string, index: number) => (
                                 <option key={index} value={cat}>{cat}</option>
-                            ))}
+                            )) || <option disabled>No categories available</option>}
                         </select>
                     </FloatingLabel>
                 </Col>

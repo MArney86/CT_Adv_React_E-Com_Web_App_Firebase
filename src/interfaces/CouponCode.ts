@@ -1,9 +1,15 @@
 export type CouponCode = {
-    id: number;
+    id: string; // Firestore document ID
     code: string;
-    discount: number; // Discount percentage
-    percentage: boolean; // Whether the discount is a percentage or a fixed amount
-    minPurchase?: number; // Minimum purchase amount to apply the coupon
-    expiryDate?: string; // Expiry date of the coupon (ISO string format)
-    isActive: boolean; // Whether the coupon is currently active
+    discount: number;
+    expiry_date: {
+        date: Date;
+        is_set: boolean;
+    };
+    is_active: boolean;
+    is_percentage: boolean;
+    min_purchase: {
+        is_set: boolean;
+        value: number;
+    };
 }

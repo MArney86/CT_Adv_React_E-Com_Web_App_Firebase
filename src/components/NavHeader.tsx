@@ -1,8 +1,16 @@
 import React from 'react';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
+import { type User } from 'firebase/auth'
+import RegisterButton from './RegisterButton';
+import LoginButton from './LoginButton';
 
-const NavHeader: React.FC = () => {
+type NavHeaderProps = {
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+};
+
+const NavHeader: React.FC<NavHeaderProps> = ({ user, setUser }) => {
 
     return (
         <>
@@ -13,7 +21,12 @@ const NavHeader: React.FC = () => {
                         <Nav.Link href="/">Home</Nav.Link>
                         <Navbar.Brand href="#home">FakeStore</Navbar.Brand>
                         <Nav.Link href="/cart">Cart</Nav.Link>
+                        <Nav.Item>
+                            <p>{user?.email}</p>
+                        </Nav.Item>
                     </Nav>
+                    {user ? null :  <RegisterButton user={user} setUser={setUser} />}
+                    <LoginButton user={user} setUser={setUser} />
                 </Navbar.Collapse>
             </Navbar>
         </>

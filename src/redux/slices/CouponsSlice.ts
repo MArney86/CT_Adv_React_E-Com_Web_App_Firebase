@@ -1,24 +1,104 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type {CouponCode} from '../../interfaces/CouponCode';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { db } from '../../components/FirebaseConfig';
+import type { CouponCode } from '../../interfaces/CouponCode';
 
-// Session storage helper functions for coupons
-const saveCouponsToStorage = (couponsState: CouponsState) => {
-    try {
-        sessionStorage.setItem('coupons', JSON.stringify(couponsState));
-    } catch (error) {
-        console.error('Failed to save coupons to session storage:', error);
-    }
-};
+// Async thunk to fetch coupons from Firestore
+export const fetchCoupons = createAsyncThunk(
+    'coupons/fetchCoupons',
+    async () => {
+        const couponsCollection = collection(db, 'coupon_codes');
+        try {
+            const couponsSnapshot = await getDocs(couponsCollection);
+            const coupons: CouponCode[] = [];
+            
+            couponsSnapshot.forEach((doc) => {
+                const data = doc.data();
+                coupons.push({
+                    id: doc.id,
+                    code: data.code,
+                    discount: data.discount,
+                    expiry_date: {
+                        date: data.expiry_date?.date?.toDate() || new Date(),
+                        is_set: data.expiry_date?.is_set || false
+                    },
+                    is_active: data.is_active,
+                    is_percentage: data.is_percentage,
+                    min_purchase: {
+                        is_set: data.min_purchase?.is_set || false,
+                        value: data.min_purchase?.value || 0
+                    }
+                });
+            });
 
-const loadCouponsFromStorage = (): CouponsState | null => {
-    try {
-        const savedCoupons = sessionStorage.getItem('coupons');
-        return savedCoupons ? JSON.parse(savedCoupons) : null;
-    } catch (error) {
-        console.error('Failed to load coupons from session storage:', error);
-        return null;
+            return coupons;
+        } catch (error) {
+            throw new Error('Failed to fetch coupons');
+        }
+        return [];
     }
-};
+);
+
+// Async thunk to add a coupon to Firestore
+export const addCouponToFirestore = createAsyncThunk<CouponCode, Omit<CouponCode, 'id'>>(
+    'coupons/addCoupon',
+    async (coupon: Omit<CouponCode, 'id'>) => {
+        const couponsCollection = collection(db, 'coupon_codes');
+            try {
+                const docRef = await addDoc(couponsCollection, {
+                    code: coupon.code,
+                    discount: coupon.discount,
+                    expiry_date: {
+                        date: coupon.expiry_date.date,
+                        is_set: coupon.expiry_date.is_set
+                    },
+                    is_active: coupon.is_active,
+                    is_percentage: coupon.is_percentage,
+                    min_purchase: {
+                        is_set: coupon.min_purchase.is_set,
+                        value: coupon.min_purchase.value
+                    }
+                });
+
+                return {
+                id: docRef.id,
+                ...coupon
+                };
+            } catch (error) {
+                throw new Error('Failed to add coupon to db');
+            }
+    }
+);
+
+// Async thunk to remove a coupon from Firestore
+export const removeCouponFromFirestore = createAsyncThunk(
+    'coupons/removeCoupon',
+    async (couponId: string) => {
+        try {
+            await deleteDoc(doc(db, 'coupon_codes', couponId));
+            return couponId;
+        } catch (error) {
+            throw new Error('Failed to remove coupon');
+        }
+    }
+);
+
+// Async thunk to update coupon status in Firestore
+export const updateCouponStatus = createAsyncThunk(
+    'coupons/updateCouponStatus',
+    async ({ couponId, isActive }: { couponId: string; isActive: boolean }) => {
+        const couponRef = doc(db, 'coupons', couponId);
+        try {
+            await updateDoc(couponRef, {
+                is_active: isActive
+            });
+            return { couponId, isActive };
+        } catch (error) {
+            throw new Error('Failed to update coupon status');
+        }
+        
+    }
+);
 
 export interface CouponsState {
     codes: CouponCode[];
@@ -26,14 +106,8 @@ export interface CouponsState {
     error: string | null;
 }
 
-const initialState: CouponsState = loadCouponsFromStorage() || {
-    codes: [ //example coupon codes
-        { id: 0, code: 'BLACKFRIDAY', discount: 20, percentage: true, expiryDate: '2024-12-01T00:00:00.000Z', isActive: false },
-        { id: 1, code: 'CYBERMONDAY', discount: 25, percentage: true, expiryDate: '2024-12-02T00:00:00.000Z', isActive: true },
-        { id: 2, code: 'SUMMERSALE', discount: 15, percentage: false, expiryDate: '2026-08-30T00:00:00.000Z', isActive: true },
-        { id: 3, code: 'WINTERSALE', discount: 30, percentage: true, expiryDate: '2026-01-15T00:00:00.000Z', isActive: true },
-        { id: 4, code: 'CODINGTEMPLE', discount: 99.99, percentage: true, expiryDate: '2026-01-01T00:00:00.000Z', isActive: true }  
-    ],
+const initialState: CouponsState = {
+    codes: [],
     status: 'idle',
     error: null
 };
@@ -42,34 +116,87 @@ const couponsSlice = createSlice({
     name: 'coupons',
     initialState,
     reducers: {
-        addCoupon: (state, action: PayloadAction<CouponCode>) => {
-            state.codes.push(action.payload);
-            saveCouponsToStorage(state);
-        },
-        removeCoupon: (state, action: PayloadAction<string>) => {
-            state.codes = state.codes.filter(coupon => coupon.code !== action.payload);
-            saveCouponsToStorage(state);
-        },
-        setInActive: (state, action: PayloadAction<string>) => {
-            const coupon = state.codes.find(c => c.code === action.payload);
-            if (coupon) {
-                coupon.isActive = false;
-                saveCouponsToStorage(state);
-            } else {
-                console.error(`Coupon with code ${action.payload} not found.`);
-            }
-        },
         setStatus: (state, action: PayloadAction<'idle' | 'loading' | 'error'>) => {
             state.status = action.payload;
-            saveCouponsToStorage(state);
         },
         setError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload;
-            saveCouponsToStorage(state);
+        },
+        clearError: (state) => {
+            state.error = null;
         }
+    },
+    extraReducers: (builder) => {
+        // Fetch coupons
+        builder
+            .addCase(fetchCoupons.pending, (state) => {
+                state.status = 'loading';
+                state.error = null;
+            })
+            .addCase(fetchCoupons.fulfilled, (state, action) => {
+                state.status = 'idle';
+                state.codes = action.payload;
+                state.error = null;
+            })
+            .addCase(fetchCoupons.rejected, (state, action) => {
+                state.status = 'error';
+                state.error = action.error.message || 'Failed to fetch coupons';
+            })
+            
+        // Add coupon
+        builder
+            .addCase(addCouponToFirestore.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(addCouponToFirestore.fulfilled, (state, action) => {
+                state.status = 'idle';
+                if (action.payload) {
+                    state.codes.push(action.payload);
+                } else {
+                    state.status = 'error';
+                    state.error = 'Failed to add coupon: no payload returned';
+                }
+            })
+            .addCase(addCouponToFirestore.rejected, (state, action) => {
+                state.status = 'error';
+                state.error = action.error.message || 'Failed to add coupon';
+            });
+            
+        // Remove coupon
+        builder
+            .addCase(removeCouponFromFirestore.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(removeCouponFromFirestore.fulfilled, (state, action) => {
+                state.status = 'idle';
+                state.codes = state.codes.filter(coupon => coupon.id !== action.payload);
+                state.error = null;
+            })
+            .addCase(removeCouponFromFirestore.rejected, (state, action) => {
+                state.status = 'error';
+                state.error = action.error.message || 'Failed to remove coupon';
+            })
+            
+        // Update coupon status
+        builder
+            .addCase(updateCouponStatus.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(updateCouponStatus.fulfilled, (state, action) => {
+                state.status = 'idle';
+                const coupon = state.codes.find(c => c.id === action.payload.couponId);
+                if (coupon) {
+                    coupon.is_active = action.payload.isActive;
+                }
+                state.error = null;
+            })
+            .addCase(updateCouponStatus.rejected, (state, action) => {
+                state.status = 'error';
+                state.error = action.error.message || 'Failed to update coupon status';
+            });
     }
 });
 
-export const { addCoupon, removeCoupon, setStatus, setError, setInActive } = couponsSlice.actions;
+export const { setStatus, setError, clearError } = couponsSlice.actions;
 
 export default couponsSlice.reducer;
