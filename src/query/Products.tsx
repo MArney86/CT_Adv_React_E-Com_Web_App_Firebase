@@ -41,7 +41,7 @@ export default function Products({ category = "All"}: { category: string }) {
     function addToCart(product: Product): void {
         const newCartItem: CartItem = {
             id: null,
-            prodId: product.id,
+            prodId: product.pid,
             title: product.title,
             price: product.price,
             quantity: 1,
@@ -55,7 +55,7 @@ export default function Products({ category = "All"}: { category: string }) {
             <Row>
             {data?.filter(product => category === "All" || product.category === category)
                 .map(product => (
-                    <Col key={product.id} xxl={3} xl={4} lg={4} md={6} xs={12} className="mb-4">
+                    <Col key={product.pid} xxl={3} xl={4} lg={4} md={6} xs={12} className="mb-4">
                         <Card className="product-card d-flex flex-column">
                             <Card.Header className="text-center">
                                 <Card.Title className='product-card-title'>{product.title}</Card.Title>

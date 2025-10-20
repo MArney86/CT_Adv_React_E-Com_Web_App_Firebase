@@ -1,7 +1,7 @@
 import { CartItem } from "./CartItem";
 
-export interface Carts {
-    id: number;
+export interface Cart {
+    oid: number | null;
     current: boolean;
     order_submitted: boolean;
     order_paid: boolean;

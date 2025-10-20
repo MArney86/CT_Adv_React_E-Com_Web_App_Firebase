@@ -1,15 +1,16 @@
 export type CouponCode = {
     id: string; // Firestore document ID
     code: string;
+    comment: string;
     discount: number;
-    expiry_date: {
+    expiryDate: {
         date: Date;
-        is_set: boolean;
+        isSet: boolean;
     };
-    is_active: boolean;
-    is_percentage: boolean;
-    min_purchase: {
-        is_set: boolean;
+    isActive: boolean;
+    isPercentage: boolean;
+    minPurchase: {
+        isSet: boolean;
         value: number;
     };
 }

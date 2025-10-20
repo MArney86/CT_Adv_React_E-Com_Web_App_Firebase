@@ -48,12 +48,12 @@ const CartPage = () => {
             return;
         }
 
-        if (!foundCoupon.is_active) {
+        if (!foundCoupon.isActive) {
             setCodeError('This coupon code is not active.');
             return;
         }
 
-        if (foundCoupon.expiry_date.is_set && new Date(foundCoupon.expiry_date.date) < new Date()) {
+        if (foundCoupon.expiryDate.isSet && new Date(foundCoupon.expiryDate.date) < new Date()) {
             setCodeError('This coupon code has expired.');
             // Update coupon status to inactive
             dispatch({
@@ -65,13 +65,13 @@ const CartPage = () => {
 
         // Check minimum purchase requirement
         const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-        if (foundCoupon.min_purchase.is_set && subtotal < foundCoupon.min_purchase.value) {
-            setCodeError(`Minimum purchase of $${foundCoupon.min_purchase.value.toFixed(2)} required.`);
+        if (foundCoupon.minPurchase.isSet && subtotal < foundCoupon.minPurchase.value) {
+            setCodeError(`Minimum purchase of $${foundCoupon.minPurchase.value.toFixed(2)} required.`);
             return;
         }
 
         // Calculate discount
-        const discountAmount = foundCoupon.is_percentage 
+        const discountAmount = foundCoupon.isPercentage
             ? (subtotal * foundCoupon.discount) / 100
             : foundCoupon.discount;
             
@@ -164,9 +164,9 @@ const CartPage = () => {
                                 {cartItems.map((item: CartItem) => (
                                     <Row key={item.id} className='mb-4 d-flex justify-content-between align-items-center'>
                                         <Col md={2} xs={6}>
-                                            {data?.find((product: Product) => product.id === item.prodId)?.image ? (
+                                            {data?.find((product: Product) => product.pid === item.prodId)?.image ? (
                                                 <Card.Img 
-                                                    src={data.find((product: Product) => product.id === item.prodId)?.image} 
+                                                    src={data.find((product: Product) => product.pid === item.prodId)?.image} 
                                                     alt={item.title} 
                                                 />
                                             ) : (
@@ -190,7 +190,7 @@ const CartPage = () => {
                                             </InputGroup>
                                         </Col>
                                         <Col md={3} xs={6}>
-                                            <h5 className='text-end mb-0'>{data?.find((product: Product) => product.id === item.prodId)?.price.toFixed(2) ?? item.price.toFixed(2)}</h5>
+                                            <h5 className='text-end mb-0'>{data?.find((product: Product) => product.pid === item.prodId)?.price.toFixed(2) ?? item.price.toFixed(2)}</h5>
                                         </Col>
                                         <Col md={1} xs={6} className='text-end'>
                                             <OverlayTrigger trigger="click" placement="top" overlay={confirmRemove}>

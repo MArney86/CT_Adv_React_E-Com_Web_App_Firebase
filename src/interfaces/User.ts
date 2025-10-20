@@ -1,8 +1,11 @@
-import type Carts from "./Carts";
-
 export interface User {
-  id: string;
+  uid: string;
   email: string;
   username: string;
-  carts: Carts[];
+  created: Date;
+  isActive: boolean;
+  accountDeleted: {
+    isDeleted: boolean;
+    deletionDate: Date | null;
+  };
 }

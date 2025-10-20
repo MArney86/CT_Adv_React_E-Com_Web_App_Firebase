@@ -17,15 +17,16 @@ export const fetchCoupons = createAsyncThunk(
                 coupons.push({
                     id: doc.id,
                     code: data.code,
+                    comment: data.comment,
                     discount: data.discount,
-                    expiry_date: {
+                    expiryDate: {
                         date: data.expiry_date?.date?.toDate() || new Date(),
-                        is_set: data.expiry_date?.is_set || false
+                        isSet: data.expiry_date?.is_set || false
                     },
-                    is_active: data.is_active,
-                    is_percentage: data.is_percentage,
-                    min_purchase: {
-                        is_set: data.min_purchase?.is_set || false,
+                    isActive: data.is_active,
+                    isPercentage: data.is_percentage,
+                    minPurchase: {
+                        isSet: data.min_purchase?.is_set || false,
                         value: data.min_purchase?.value || 0
                     }
                 });
@@ -48,15 +49,15 @@ export const addCouponToFirestore = createAsyncThunk<CouponCode, Omit<CouponCode
                 const docRef = await addDoc(couponsCollection, {
                     code: coupon.code,
                     discount: coupon.discount,
-                    expiry_date: {
-                        date: coupon.expiry_date.date,
-                        is_set: coupon.expiry_date.is_set
+                    expiryDate: {
+                        date: coupon.expiryDate.date,
+                        isSet: coupon.expiryDate.isSet
                     },
-                    is_active: coupon.is_active,
-                    is_percentage: coupon.is_percentage,
-                    min_purchase: {
-                        is_set: coupon.min_purchase.is_set,
-                        value: coupon.min_purchase.value
+                    isActive: coupon.isActive,
+                    isPercentage: coupon.isPercentage,
+                    minPurchase: {
+                        isSet: coupon.minPurchase.isSet,
+                        value: coupon.minPurchase.value
                     }
                 });
 
@@ -83,20 +84,17 @@ export const removeCouponFromFirestore = createAsyncThunk(
     }
 );
 
-// Async thunk to update coupon status in Firestore
-export const updateCouponStatus = createAsyncThunk(
-    'coupons/updateCouponStatus',
-    async ({ couponId, isActive }: { couponId: string; isActive: boolean }) => {
-        const couponRef = doc(db, 'coupons', couponId);
+// Async thunk to update coupon details in Firestore
+export const updateCouponDetails = createAsyncThunk(
+    'coupons/updateCouponDetails',
+    async ({ ccid, details} : { ccid: string; details: Partial<CouponCode>}) => {
+        const couponRef = doc(db, 'coupons', ccid);
         try {
-            await updateDoc(couponRef, {
-                is_active: isActive
-            });
-            return { couponId, isActive };
+            await updateDoc(couponRef, details);
+            return { ccid, details };
         } catch (error) {
-            throw new Error('Failed to update coupon status');
+            throw new Error('Failed to update coupon details');
         }
-        
     }
 );
 
@@ -177,22 +175,23 @@ const couponsSlice = createSlice({
                 state.error = action.error.message || 'Failed to remove coupon';
             })
             
-        // Update coupon status
+        // Update coupon details
         builder
-            .addCase(updateCouponStatus.pending, (state) => {
+            .addCase(updateCouponDetails.pending, (state) => {
                 state.status = 'loading';
             })
-            .addCase(updateCouponStatus.fulfilled, (state, action) => {
+            .addCase(updateCouponDetails.fulfilled, (state, action) => {
                 state.status = 'idle';
-                const coupon = state.codes.find(c => c.id === action.payload.couponId);
+                const coupon = state.codes.find(c => c.id === action.payload.ccid);
                 if (coupon) {
-                    coupon.is_active = action.payload.isActive;
+                    const index = state.codes.findIndex(c => c.id === action.payload.ccid);
+                    state.codes[index] = { ...coupon, ...action.payload.details };
                 }
                 state.error = null;
             })
-            .addCase(updateCouponStatus.rejected, (state, action) => {
+            .addCase(updateCouponDetails.rejected, (state, action) => {
                 state.status = 'error';
-                state.error = action.error.message || 'Failed to update coupon status';
+                state.error = action.error.message || 'Failed to update coupon details';
             });
     }
 });
