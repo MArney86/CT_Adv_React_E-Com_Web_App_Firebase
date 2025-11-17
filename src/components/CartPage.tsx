@@ -58,7 +58,7 @@ const CartPage = () => {
             // Update coupon status to inactive
             dispatch({
                 type: 'coupons/updateCouponStatus',
-                payload: { couponId: foundCoupon.id, isActive: false }
+                payload: { couponId: foundCoupon.ccid, isActive: false }
             });
             return;
         }
@@ -106,12 +106,12 @@ const CartPage = () => {
         if (item.quantity - 1 < 1) {
             dispatch({
                 type: 'cart/removeItem',
-                payload: { id: item.id }
+                payload: { id: item.ciid }
             });
         } else {
             dispatch({
                 type: 'cart/updateItemQuantity',
-                payload: { id: item.id, quantity: item.quantity - 1 }
+                payload: { id: item.ciid, quantity: item.quantity - 1 }
             });
         }
     };
@@ -119,7 +119,7 @@ const CartPage = () => {
     const handleQuantIncrement = (item: CartItem) => {
         dispatch({
             type: 'cart/updateItemQuantity',
-            payload: { id: item.id, quantity: item.quantity + 1 }
+            payload: { id: item.ciid, quantity: item.quantity + 1 }
         });
     };
 
@@ -162,7 +162,7 @@ const CartPage = () => {
                                 <hr className='my-4' />
 
                                 {cartItems.map((item: CartItem) => (
-                                    <Row key={item.id} className='mb-4 d-flex justify-content-between align-items-center'>
+                                    <Row key={item.ciid} className='mb-4 d-flex justify-content-between align-items-center'>
                                         <Col md={2} xs={6}>
                                             {data?.find((product: Product) => product.pid === item.prodId)?.image ? (
                                                 <Card.Img 
@@ -194,7 +194,7 @@ const CartPage = () => {
                                         </Col>
                                         <Col md={1} xs={6} className='text-end'>
                                             <OverlayTrigger trigger="click" placement="top" overlay={confirmRemove}>
-                                                <Button onClick={() => setRemoveId(item.id)}>
+                                                <Button onClick={() => setRemoveId(item.ciid)}>
                                                     <span className="material-symbols-outlined">delete</span>
                                                 </Button>
                                             </OverlayTrigger>

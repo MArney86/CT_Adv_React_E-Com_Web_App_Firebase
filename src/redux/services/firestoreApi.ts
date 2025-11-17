@@ -1,5 +1,5 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../components/FirebaseConfig';
 import { Product } from '../../interfaces/Product';
 import { CouponCode } from '../../interfaces/CouponCode';
@@ -16,7 +16,10 @@ export const firestoreApi = createApi({
                 try {
                     const productsCollection = collection(db, 'products');
                     const productsSnapshot = await getDocs(productsCollection);
-                    const products: Product[] = productsSnapshot.docs.map(doc => doc.data() as Product);
+                    let products: Product[] = []
+                    if (!productsSnapshot.empty) {
+                        products = productsSnapshot.docs.map(doc => doc.data() as Product);
+                    }
                     return { data: products };
                 } catch (error) {
                     return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch products' } };
@@ -29,7 +32,10 @@ export const firestoreApi = createApi({
                 try {
                     const couponsCollection = collection(db, 'coupon_codes');
                     const couponsSnapshot = await getDocs(couponsCollection);
-                    const coupons: CouponCode[] = couponsSnapshot.docs.map(doc => doc.data() as CouponCode);
+                    let coupons: CouponCode[] = [];
+                    if (!couponsSnapshot.empty) {
+                        coupons = couponsSnapshot.docs.map(doc => doc.data() as CouponCode);
+                    }
                     return { data: coupons };
                 } catch (error) {
                     return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch coupons' } };
@@ -37,25 +43,74 @@ export const firestoreApi = createApi({
             },
             providesTags: ['Coupons'],
         }),
-        getUsers: builder.query({
-            queryFn: async () => {
+        getUser: builder.query({
+            queryFn: async (userId: string) => {
                 try {
                     const usersCollection = collection(db, 'users');
                     const usersSnapshot = await getDocs(usersCollection);
-                    const users: User[] = usersSnapshot.docs.map(doc => doc.data() as User);
-                    return { data: users };
+                    let users: User[] = []
+                    if (!usersSnapshot.empty) {
+                        usersSnapshot.docs.map(doc => doc.data() as User);
+                    }
+                    return { data: users.find(user => user.uid === userId) || null};
                 } catch (error) {
-                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch users' } };
+                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch user' } };
                 }
             },
             providesTags: ['Users'],
         }),
         getOrders: builder.query({
             queryFn: async (userId: string) => {
-                try {
+                if (!userId || userId.trim() === '') {
+                    return { error: { status: 'FETCH_ERROR', error: 'Invalid user ID' } };
+                }
+                
+                try {            
                     const ordersCollection = collection(db, 'carts');
                     const ordersSnapshot = await getDocs(ordersCollection);
-                    const orders: Cart[] = ordersSnapshot.docs.map(doc => doc.data() as Cart);
+                    let orders: Cart[] = []
+                    if (!ordersSnapshot.empty) {
+                        orders = ordersSnapshot.docs.map(doc => {
+                            const data = doc.data();
+                            // Convert Firestore Timestamp to ISO string
+                            const date = data.date;
+                            const serializedDate = date && typeof date.toDate === 'function'
+                                ? date.toDate().toISOString()
+                                : (typeof date === 'string' ? date : new Date().toISOString());
+                            
+                            return {
+                                ...data,
+                                date: serializedDate
+                            } as Cart;
+                        });
+                    }
+                    return { data: orders };
+                } catch (error) {
+                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch orders' } };
+                }
+            },
+            providesTags: ['Orders'],
+        }),
+        getAllOrders: builder.query({
+            queryFn: async () => {
+                try {
+                    const cartsCollection = collection(db, 'carts');
+                    const cartsSnapshot = await getDocs(cartsCollection);
+                    const orders: Cart[] = cartsSnapshot.docs
+                        .map(doc => {
+                            const data = doc.data();
+                            // Convert Firestore Timestamp to ISO string
+                            const date = data.date;
+                            const serializedDate = date && typeof date.toDate === 'function'
+                                ? date.toDate().toISOString()
+                                : (typeof date === 'string' ? date : new Date().toISOString());
+                            
+                            return {
+                                ...data,
+                                date: serializedDate
+                            } as Cart;
+                        })
+                        .filter(order => order.oid !== undefined && order.oid !== null);
                     return { data: orders };
                 } catch (error) {
                     return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch orders' } };
@@ -66,3 +121,11 @@ export const firestoreApi = createApi({
         // Add more endpoints as needed
     })
 });
+
+export const {
+    useGetProductsQuery,
+    useGetCouponsQuery,
+    useGetUserQuery,
+    useGetOrdersQuery,
+    useGetAllOrdersQuery,
+} = firestoreApi;

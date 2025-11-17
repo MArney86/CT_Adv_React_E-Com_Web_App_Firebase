@@ -1,5 +1,6 @@
 import {useState, type FormEvent} from 'react';
 import { signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
+import { useDispatch } from 'react-redux';
 import { auth } from './FirebaseConfig';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
@@ -40,6 +41,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
     const handleLogout = async () => {
         try {
             await signOut(auth);
+            
             alert("Logout successful!");
         } catch (err: any) {
             setError("Error Logging Out: " + err.message);

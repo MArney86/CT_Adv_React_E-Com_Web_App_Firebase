@@ -1,7 +1,7 @@
 import { CartItem } from "./CartItem";
 
 export interface Cart {
-    oid: number | null;
+    oid: number;
     current: boolean;
     order_submitted: boolean;
     order_paid: boolean;
@@ -10,4 +10,5 @@ export interface Cart {
     uid: string;
     date: string;
     products: CartItem[];
+    coupons: number[];
 }

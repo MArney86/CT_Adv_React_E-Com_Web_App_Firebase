@@ -9,7 +9,7 @@ export type Product = {
     isDiscontinued: boolean; //whether the product is discontinued
     removed: {
         isRemoved: boolean;
-        removedDate: Date;
+        removedDate: string | null;
     };
     rating: {
         rate: number; //average rating of the product

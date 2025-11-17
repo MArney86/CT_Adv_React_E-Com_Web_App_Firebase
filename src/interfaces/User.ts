@@ -1,11 +1,12 @@
 export interface User {
   uid: string;
-  email: string;
-  username: string;
-  created: Date;
+  email: string | null;
+  username: string | null;
+  created: string; // ISO string format for serialization
   isActive: boolean;
   accountDeleted: {
     isDeleted: boolean;
-    deletionDate: Date | null;
+    deletionDate: string | null; // ISO string format for serialization
   };
+  orders: number[];
 }
