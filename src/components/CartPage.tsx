@@ -16,6 +16,9 @@ import axios from 'axios';
 import type { Product } from '../interfaces/Product';
 import type { CartItem } from '../interfaces/CartItem';
 import type { CouponCode } from '../interfaces/CouponCode';
+import type { RootState, AppDispatch } from '../redux/store/store';
+import { removeItem, updateItemQuantity } from '../redux/slices/CartSlice';
+import { updateCouponDetails } from '../redux/slices/CouponsSlice';
 
 const fetchProducts = async (): Promise<Product[]> => {
     const response = await axios.get('https://fakestoreapi.com/products');
@@ -30,10 +33,19 @@ const CartPage = () => {
     const [couponCode, setCouponCode] = useState<string>('');
     const [shipping, setShipping] = useState<number>(0);
     const [codeError, setCodeError] = useState<string>('');
-    const dispatch = useDispatch();
+    const [couponSuccess, setCouponSuccess] = useState<string>('');
+    const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
-    const cartItems = useSelector((state: { cart: { items: CartItem[] } }) => state.cart.items);
-    const couponCodes = useSelector((state: { coupons: { codes: CouponCode[] } }) => state.coupons.codes);
+    const cartItems = useSelector((state: RootState) => state.cart.items);
+    const couponCodes = useSelector((state: RootState) => state.coupons.codes);
+    const currentUser = useSelector((state: RootState) => state.user.currentUser);
+    
+    console.log('CartPage: cartItems =', cartItems);
+    console.log('CartPage: cartItems.length =', cartItems.length);
+    if (cartItems.length > 0) {
+        console.log('CartPage: First item =', cartItems[0]);
+    }
+    
     const { data } = useQuery<Product[], Error>({
             queryKey: ['products'],
             queryFn: fetchProducts,
@@ -41,6 +53,7 @@ const CartPage = () => {
 
     const handleCouponCode = () => {
         setCodeError(''); // Clear previous errors
+        setCouponSuccess(''); // Clear previous success message
         const foundCoupon = couponCodes.find((code: CouponCode) => code.code === couponCode);
         
         if (!foundCoupon) {
@@ -56,10 +69,10 @@ const CartPage = () => {
         if (foundCoupon.expiryDate.isSet && new Date(foundCoupon.expiryDate.date) < new Date()) {
             setCodeError('This coupon code has expired.');
             // Update coupon status to inactive
-            dispatch({
-                type: 'coupons/updateCouponStatus',
-                payload: { couponId: foundCoupon.ccid, isActive: false }
-            });
+            dispatch(updateCouponDetails({ 
+                ccid: foundCoupon.ccid, 
+                details: { isActive: false } 
+            }));
             return;
         }
 
@@ -74,8 +87,12 @@ const CartPage = () => {
         const discountAmount = foundCoupon.isPercentage
             ? (subtotal * foundCoupon.discount) / 100
             : foundCoupon.discount;
+        
+        // Ensure discount doesn't exceed subtotal
+        const finalDiscount = Math.min(discountAmount, subtotal);
             
-        setCouponDiscount(discountAmount);
+        setCouponDiscount(finalDiscount);
+        setCouponSuccess(`Coupon applied! You saved $${finalDiscount.toFixed(2)}`);
         setCodeError(''); // Clear any errors
     }
 
@@ -103,24 +120,35 @@ const CartPage = () => {
 
 
     const handleQuantDecrement = (item: CartItem) => {
+        if (!currentUser) {
+            alert('Please login to modify cart');
+            return;
+        }
+        
+        if (item.ciid === null) {
+            alert('Invalid item ID');
+            return;
+        }
+        
         if (item.quantity - 1 < 1) {
-            dispatch({
-                type: 'cart/removeItem',
-                payload: { id: item.ciid }
-            });
+            dispatch(removeItem({ ciid: item.ciid, uid: currentUser.uid }));
         } else {
-            dispatch({
-                type: 'cart/updateItemQuantity',
-                payload: { id: item.ciid, quantity: item.quantity - 1 }
-            });
+            dispatch(updateItemQuantity({ id: item.ciid, quantity: item.quantity - 1, uid: currentUser.uid }));
         }
     };
 
     const handleQuantIncrement = (item: CartItem) => {
-        dispatch({
-            type: 'cart/updateItemQuantity',
-            payload: { id: item.ciid, quantity: item.quantity + 1 }
-        });
+        if (!currentUser) {
+            alert('Please login to modify cart');
+            return;
+        }
+        
+        if (item.ciid === null) {
+            alert('Invalid item ID');
+            return;
+        }
+        
+        dispatch(updateItemQuantity({ id: item.ciid, quantity: item.quantity + 1, uid: currentUser.uid }));
     };
 
     const handleRemoveItem = (id: number|null) => {
@@ -129,10 +157,12 @@ const CartPage = () => {
             return;
         }
 
-        dispatch({
-            type: 'cart/removeItem',
-            payload: id
-        });
+        if (!currentUser) {
+            alert('Please login to remove items');
+            return;
+        }
+
+        dispatch(removeItem({ ciid: id, uid: currentUser.uid }));
         alert('Item removed from cart!');
     }
 
@@ -190,7 +220,7 @@ const CartPage = () => {
                                             </InputGroup>
                                         </Col>
                                         <Col md={3} xs={6}>
-                                            <h5 className='text-end mb-0'>{data?.find((product: Product) => product.pid === item.prodId)?.price.toFixed(2) ?? item.price.toFixed(2)}</h5>
+                                            <h5 className='text-end mb-0'>${(item.price * item.quantity).toFixed(2)}</h5>
                                         </Col>
                                         <Col md={1} xs={6} className='text-end'>
                                             <OverlayTrigger trigger="click" placement="top" overlay={confirmRemove}>
@@ -224,7 +254,7 @@ const CartPage = () => {
                                 <div className="mb-4">
                                     <Form.Select id="cart-shipping" className="select p-2 rounded bg-grey w-100" value={shipping} onChange={e => setShipping(Number(e.target.value))}>
                                         <option value={0} disabled>Select your option</option>
-                                        <option value={5}>Standard-Delivery- €5.00</option>
+                                        <option value={5}>Standard-Delivery - $5.00</option>
                                         <option value={12}>Express-Delivery - $12.00</option>
                                         <option value={23}>Overnight-Delivery - $23.00</option>
                                     </Form.Select>
@@ -240,6 +270,7 @@ const CartPage = () => {
                                 </InputGroup>
                                 <div className="mb-5">
                                     {codeError && <Alert variant="warning" className="text-center">{codeError}</Alert>}
+                                    {couponSuccess && <Alert variant="success" className="text-center">{couponSuccess}</Alert>}
                                 </div>
 
                                 <div className="d-flex justify-content-between mb-5">

@@ -35,7 +35,7 @@ function App() {
     const cartState = useSelector((state: any) => state.cart?.items || []);
     
     const { data: ordersData, isLoading: ordersLoading, error: ordersError } = useGetOrdersQuery(user ? user.uid : "", {
-        skip: !user || ordersState.length > 0
+        skip: !user
     });
     const { data: userData, isLoading: userLoading, error: userError } = useGetUserQuery(user?.uid || "", {
         skip: !user || userState !== null
@@ -79,8 +79,13 @@ function App() {
         });
         
         // Handle orders data
-        if (ordersData && ordersState.length === 0) {
-            dispatch(setUserOrders(ordersData));
+        if (ordersData) {
+            console.log('App.tsx: Got ordersData, length =', ordersData.length);
+            // Only update if the data is different from what we have
+            if (ordersData.length !== ordersState.length) {
+                console.log('App.tsx: Setting user orders, ordersData =', ordersData);
+                dispatch(setUserOrders(ordersData));
+            }
         }
 
         // Handle user data
@@ -105,10 +110,13 @@ function App() {
             
             // Load cart from orders if needed
             if (cartState.length === 0 && ordersState.length > 0) {
+                console.log('App.tsx: Checking if should load cart from orders');
+                console.log('App.tsx: ordersState[0] =', ordersState[0]);
                 if (!ordersState[0].order_paid &&
                     !ordersState[0].order_fulfilled &&
                     !ordersState[0].order_delivered &&
                     !ordersState[0].order_submitted) {
+                        console.log('App.tsx: Loading cart from order, products =', ordersState[0].products);
                         dispatch(loadCartFromOrder({ items: ordersState[0].products, oid: ordersState[0].oid }))
                 }
             }

@@ -1,15 +1,16 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../components/FirebaseConfig';
 import { Product } from '../../interfaces/Product';
 import { CouponCode } from '../../interfaces/CouponCode';
 import { User } from '../../interfaces/User';
 import { Cart } from '../../interfaces/Cart';
+import { CartItem } from '../../interfaces/CartItem';
 
 export const firestoreApi = createApi({
     reducerPath: 'firestoreApi',
     baseQuery: fakeBaseQuery(),
-    tagTypes: ['Products', 'Coupons', 'Users', 'Orders'],
+    tagTypes: ['Products', 'Coupons', 'Users', 'Orders', 'CartItems'],
     endpoints: (builder) => ({
         getProducts: builder.query({
             queryFn: async () => {
@@ -65,12 +66,28 @@ export const firestoreApi = createApi({
                     return { error: { status: 'FETCH_ERROR', error: 'Invalid user ID' } };
                 }
                 
-                try {            
-                    const ordersCollection = collection(db, 'carts');
-                    const ordersSnapshot = await getDocs(ordersCollection);
-                    let orders: Cart[] = []
-                    if (!ordersSnapshot.empty) {
-                        orders = ordersSnapshot.docs.map(doc => {
+                try {
+                    console.log('firestoreApi: Fetching carts for userId =', userId);
+                    // Fetch all carts from the carts collection
+                    const cartsCollection = collection(db, 'carts');
+                    const cartsSnapshot = await getDocs(cartsCollection);
+                    
+                    if (cartsSnapshot.empty) {
+                        console.log('firestoreApi: No carts found');
+                        return { data: [] };
+                    }
+                    
+                    // Filter for this user's current cart (current: true)
+                    const carts: Cart[] = cartsSnapshot.docs
+                        .filter(doc => {
+                            const data = doc.data();
+                            // Filter out initialization documents and get only this user's carts
+                            return doc.id !== 'Initialization' && 
+                                   doc.id !== 'Initialize' && 
+                                   data.uid === userId &&
+                                   data.current === true; // Only get current cart
+                        })
+                        .map(doc => {
                             const data = doc.data();
                             // Convert Firestore Timestamp to ISO string
                             const date = data.date;
@@ -78,14 +95,23 @@ export const firestoreApi = createApi({
                                 ? date.toDate().toISOString()
                                 : (typeof date === 'string' ? date : new Date().toISOString());
                             
+                            // Validate: if any order_* flag is true, current must be false
+                            let current = data.current;
+                            if (data.order_submitted || data.order_paid || data.order_fulfilled || data.order_delivered) {
+                                current = false;
+                            }
+                            
                             return {
                                 ...data,
-                                date: serializedDate
+                                date: serializedDate,
+                                current: current
                             } as Cart;
                         });
-                    }
-                    return { data: orders };
+                    
+                    console.log('firestoreApi: Found carts, length =', carts.length);
+                    return { data: carts };
                 } catch (error) {
+                    console.error('firestoreApi: Error fetching carts:', error);
                     return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch orders' } };
                 }
             },
@@ -97,6 +123,13 @@ export const firestoreApi = createApi({
                     const cartsCollection = collection(db, 'carts');
                     const cartsSnapshot = await getDocs(cartsCollection);
                     const orders: Cart[] = cartsSnapshot.docs
+                        .filter(doc => {
+                            // Filter out initialization documents
+                            return doc.id !== 'Initialization' && 
+                                   doc.id !== 'Initialize' &&
+                                   doc.data().oid !== undefined && 
+                                   doc.data().oid !== null;
+                        })
                         .map(doc => {
                             const data = doc.data();
                             // Convert Firestore Timestamp to ISO string
@@ -109,14 +142,42 @@ export const firestoreApi = createApi({
                                 ...data,
                                 date: serializedDate
                             } as Cart;
-                        })
-                        .filter(order => order.oid !== undefined && order.oid !== null);
+                        });
                     return { data: orders };
                 } catch (error) {
                     return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch orders' } };
                 }
             },
             providesTags: ['Orders'],
+        }),
+        getCartItems: builder.query<CartItem[], string>({
+            queryFn: async (userId: string) => {
+                if (!userId || userId.trim() === '') {
+                    return { error: { status: 'FETCH_ERROR', error: 'Invalid user ID' } };
+                }
+                
+                try {
+                    console.log('firestoreApi: Fetching cart items for userId =', userId);
+                    const cartItemsCollection = collection(db, 'carts', userId, 'items');
+                    const cartItemsSnapshot = await getDocs(cartItemsCollection);
+                    
+                    if (cartItemsSnapshot.empty) {
+                        console.log('firestoreApi: No cart items found');
+                        return { data: [] };
+                    }
+                    
+                    const items: CartItem[] = cartItemsSnapshot.docs
+                        .filter(doc => !doc.data().deleted) // Filter out soft-deleted items
+                        .map(doc => doc.data() as CartItem);
+                    
+                    console.log('firestoreApi: Found cart items, length =', items.length);
+                    return { data: items };
+                } catch (error) {
+                    console.error('firestoreApi: Error fetching cart items:', error);
+                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch cart items' } };
+                }
+            },
+            providesTags: ['CartItems'],
         }),
         // Add more endpoints as needed
     })

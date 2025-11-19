@@ -85,7 +85,7 @@ const sampleCoupons = [
  */
 export const populateSampleCoupons = async () => {
     try {
-        const couponsCollection = collection(db, 'coupons');
+        const couponsCollection = collection(db, 'coupon_codes');
         
         for (const coupon of sampleCoupons) {
             await addDoc(couponsCollection, coupon);

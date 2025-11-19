@@ -19,7 +19,7 @@ const NavHeader: React.FC<NavHeaderProps> = ({ user, setUser }) => {
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav className="me-auto justify-content-between w-100 px-5">
                         <Nav.Link href="/">Home</Nav.Link>
-                        <Navbar.Brand href="#home">FakeStore</Navbar.Brand>
+                        <Navbar.Brand href="/">FakeStore</Navbar.Brand>
                         <Nav.Link href="/cart">Cart</Nav.Link>
                         <Nav.Item>
                             <p>{user?.email}</p>

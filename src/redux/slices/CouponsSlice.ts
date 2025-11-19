@@ -2,51 +2,95 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../../components/FirebaseConfig';
 import type { CouponCode } from '../../interfaces/CouponCode';
+import { populateSampleCoupons } from '../../utlilities/populateSampleCoupons';
 
-// Async thunk to fetch coupons from Firestore
-export const fetchCoupons = createAsyncThunk(
+// Async thunk to fetch coupons from Firestore, or populate sample coupons if empty
+export const fetchCoupons = createAsyncThunk<CouponCode[]>(
     'coupons/fetchCoupons',
     async () => {
-        const couponsCollection = collection(db, 'coupon_codes');
         try {
+            // Try to get coupons from Firestore
+            const couponsCollection = collection(db, 'coupon_codes');
             const couponsSnapshot = await getDocs(couponsCollection);
-            const coupons: CouponCode[] = [];
             
-            couponsSnapshot.forEach((doc) => {
-                const data = doc.data();
-                coupons.push({
-                    id: doc.id,
-                    code: data.code,
-                    comment: data.comment,
-                    discount: data.discount,
-                    expiryDate: {
-                        date: data.expiry_date?.date?.toDate() || new Date(),
-                        isSet: data.expiry_date?.is_set || false
-                    },
-                    isActive: data.is_active,
-                    isPercentage: data.is_percentage,
-                    minPurchase: {
-                        isSet: data.min_purchase?.is_set || false,
-                        value: data.min_purchase?.value || 0
-                    }
+            // Filter out the "Initialize" or "Initialization" document
+            const coupons = couponsSnapshot.docs
+                .filter(doc => doc.id !== 'Initialize' && doc.id !== 'Initialization')
+                .map(doc => {
+                    const data = doc.data();
+                    // Convert Firestore Timestamps to ISO strings and map field names
+                    const expiryDateField = data.expiry_date || data.expiryDate;
+                    const expiryDateValue = expiryDateField?.date;
+                    const serializedDate = expiryDateValue && typeof expiryDateValue.toDate === 'function'
+                        ? expiryDateValue.toDate().toISOString()
+                        : (typeof expiryDateValue === 'string' ? expiryDateValue : new Date().toISOString());
+                    
+                    return {
+                        ccid: data.ccid || doc.id,
+                        code: data.code,
+                        comment: data.comment,
+                        discount: data.discount,
+                        expiryDate: {
+                            date: serializedDate,
+                            isSet: expiryDateField?.isSet ?? false
+                        },
+                        isActive: data.isActive,
+                        isPercentage: data.isPercentage,
+                        minPurchase: data.minPurchase || data.min_purchase
+                    } as CouponCode;
                 });
-            });
-
-            return coupons;
+            
+            if (coupons.length > 0) {
+                // Real coupons exist in Firestore, return them
+                return coupons;
+            } else {
+                // No real coupons in Firestore (only Initialization doc or empty), populate sample coupons
+                console.log('No coupons found, populating sample coupons...');
+                await populateSampleCoupons();
+                
+                // Fetch the newly added coupons (excluding Initialize/Initialization)
+                const newCouponsSnapshot = await getDocs(couponsCollection);
+                const newCoupons = newCouponsSnapshot.docs
+                    .filter(doc => doc.id !== 'Initialize' && doc.id !== 'Initialization')
+                    .map(doc => {
+                        const data = doc.data();
+                        // Convert Firestore Timestamps to ISO strings and map field names
+                        const expiryDateField = data.expiry_date || data.expiryDate;
+                        const expiryDateValue = expiryDateField?.date;
+                        const serializedDate = expiryDateValue && typeof expiryDateValue.toDate === 'function'
+                            ? expiryDateValue.toDate().toISOString()
+                            : (typeof expiryDateValue === 'string' ? expiryDateValue : new Date().toISOString());
+                        
+                        return {
+                            ccid: data.ccid || doc.id,
+                            code: data.code,
+                            comment: data.comment,
+                            discount: data.discount,
+                            expiryDate: {
+                                date: serializedDate,
+                                isSet: expiryDateField?.isSet ?? false
+                            },
+                            isActive: data.isActive,
+                            isPercentage: data.isPercentage,
+                            minPurchase: data.minPurchase || data.min_purchase
+                        } as CouponCode;
+                    });
+                return newCoupons;
+            }
         } catch (error) {
             throw new Error('Failed to fetch coupons');
         }
-        return [];
     }
 );
 
 // Async thunk to add a coupon to Firestore
-export const addCouponToFirestore = createAsyncThunk<CouponCode, Omit<CouponCode, 'id'>>(
+export const addCoupon = createAsyncThunk<CouponCode, CouponCode>(
     'coupons/addCoupon',
-    async (coupon: Omit<CouponCode, 'id'>) => {
+    async (coupon: CouponCode) => {
         const couponsCollection = collection(db, 'coupon_codes');
             try {
                 const docRef = await addDoc(couponsCollection, {
+                    ccid: coupon.ccid,
                     code: coupon.code,
                     discount: coupon.discount,
                     expiryDate: {
@@ -61,18 +105,15 @@ export const addCouponToFirestore = createAsyncThunk<CouponCode, Omit<CouponCode
                     }
                 });
 
-                return {
-                id: docRef.id,
-                ...coupon
-                };
+                return coupon
             } catch (error) {
                 throw new Error('Failed to add coupon to db');
             }
     }
 );
 
-// Async thunk to remove a coupon from Firestore
-export const removeCouponFromFirestore = createAsyncThunk(
+// Async thunk to remove a coupon. note: not meant to be used if coupon is applied to any orders
+export const removeCoupon = createAsyncThunk(
     'coupons/removeCoupon',
     async (couponId: string) => {
         try {
@@ -122,14 +163,16 @@ const couponsSlice = createSlice({
         },
         clearError: (state) => {
             state.error = null;
-        }
+        },
+        setCoupons: (state, action: PayloadAction<CouponCode[]>) => {
+            state.codes = action.payload;
+        },
     },
     extraReducers: (builder) => {
         // Fetch coupons
         builder
             .addCase(fetchCoupons.pending, (state) => {
                 state.status = 'loading';
-                state.error = null;
             })
             .addCase(fetchCoupons.fulfilled, (state, action) => {
                 state.status = 'idle';
@@ -139,14 +182,14 @@ const couponsSlice = createSlice({
             .addCase(fetchCoupons.rejected, (state, action) => {
                 state.status = 'error';
                 state.error = action.error.message || 'Failed to fetch coupons';
-            })
-            
+            });
+        
         // Add coupon
         builder
-            .addCase(addCouponToFirestore.pending, (state) => {
+            .addCase(addCoupon.pending, (state) => {
                 state.status = 'loading';
             })
-            .addCase(addCouponToFirestore.fulfilled, (state, action) => {
+            .addCase(addCoupon.fulfilled, (state, action) => {
                 state.status = 'idle';
                 if (action.payload) {
                     state.codes.push(action.payload);
@@ -155,22 +198,22 @@ const couponsSlice = createSlice({
                     state.error = 'Failed to add coupon: no payload returned';
                 }
             })
-            .addCase(addCouponToFirestore.rejected, (state, action) => {
+            .addCase(addCoupon.rejected, (state, action) => {
                 state.status = 'error';
                 state.error = action.error.message || 'Failed to add coupon';
             });
             
         // Remove coupon
         builder
-            .addCase(removeCouponFromFirestore.pending, (state) => {
+            .addCase(removeCoupon.pending, (state) => {
                 state.status = 'loading';
             })
-            .addCase(removeCouponFromFirestore.fulfilled, (state, action) => {
+            .addCase(removeCoupon.fulfilled, (state, action) => {
                 state.status = 'idle';
-                state.codes = state.codes.filter(coupon => coupon.id !== action.payload);
+                state.codes = state.codes.filter(coupon => coupon.ccid !== action.payload);
                 state.error = null;
             })
-            .addCase(removeCouponFromFirestore.rejected, (state, action) => {
+            .addCase(removeCoupon.rejected, (state, action) => {
                 state.status = 'error';
                 state.error = action.error.message || 'Failed to remove coupon';
             })
@@ -182,9 +225,9 @@ const couponsSlice = createSlice({
             })
             .addCase(updateCouponDetails.fulfilled, (state, action) => {
                 state.status = 'idle';
-                const coupon = state.codes.find(c => c.id === action.payload.ccid);
+                const coupon = state.codes.find(c => c.ccid === action.payload.ccid);
                 if (coupon) {
-                    const index = state.codes.findIndex(c => c.id === action.payload.ccid);
+                    const index = state.codes.findIndex(c => c.ccid === action.payload.ccid);
                     state.codes[index] = { ...coupon, ...action.payload.details };
                 }
                 state.error = null;
@@ -196,6 +239,6 @@ const couponsSlice = createSlice({
     }
 });
 
-export const { setStatus, setError, clearError } = couponsSlice.actions;
+export const { setStatus, setError, clearError, setCoupons } = couponsSlice.actions;
 
 export default couponsSlice.reducer;

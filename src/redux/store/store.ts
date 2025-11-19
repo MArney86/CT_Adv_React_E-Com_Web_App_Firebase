@@ -4,7 +4,8 @@ import { firestoreApi } from '../services/firestoreApi';
 import cartReducer from '../slices/CartSlice';
 import couponsReducer from '../slices/CouponsSlice';
 import productsReducer from '../slices/ProductsSlice';
-import usersReducer from '../slices/UsersSlice';
+import userReducer from '../slices/UserSlice';
+import ordersReducer from '../slices/OrdersSlice';
 
 export const store = configureStore({
     reducer: {
@@ -12,7 +13,7 @@ export const store = configureStore({
         cart: cartReducer,
         coupons: couponsReducer,
         products: productsReducer,
-        users: usersReducer,
+        user: userReducer,
         orders: ordersReducer
     },
     middleware: (getDefaultMiddleware) =>
