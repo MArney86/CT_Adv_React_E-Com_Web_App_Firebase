@@ -32,11 +32,14 @@ export const fetchCoupons = createAsyncThunk<CouponCode[]>(
                         discount: data.discount,
                         expiryDate: {
                             date: serializedDate,
-                            isSet: expiryDateField?.isSet ?? false
+                            isSet: expiryDateField?.is_set ?? expiryDateField?.isSet ?? false
                         },
-                        isActive: data.isActive,
-                        isPercentage: data.isPercentage,
-                        minPurchase: data.minPurchase || data.min_purchase
+                        isActive: data.is_active ?? data.isActive ?? true,
+                        isPercentage: data.is_percentage ?? data.isPercentage ?? false,
+                        minPurchase: {
+                            isSet: (data.minPurchase || data.min_purchase)?.is_set ?? (data.minPurchase || data.min_purchase)?.isSet ?? false,
+                            value: (data.minPurchase || data.min_purchase)?.value ?? 0
+                        }
                     } as CouponCode;
                 });
             
@@ -68,11 +71,14 @@ export const fetchCoupons = createAsyncThunk<CouponCode[]>(
                             discount: data.discount,
                             expiryDate: {
                                 date: serializedDate,
-                                isSet: expiryDateField?.isSet ?? false
+                                isSet: expiryDateField?.is_set ?? expiryDateField?.isSet ?? false
                             },
-                            isActive: data.isActive,
-                            isPercentage: data.isPercentage,
-                            minPurchase: data.minPurchase || data.min_purchase
+                            isActive: data.is_active ?? data.isActive ?? true,
+                            isPercentage: data.is_percentage ?? data.isPercentage ?? false,
+                            minPurchase: {
+                                isSet: (data.minPurchase || data.min_purchase)?.is_set ?? (data.minPurchase || data.min_purchase)?.isSet ?? false,
+                                value: (data.minPurchase || data.min_purchase)?.value ?? 0
+                            }
                         } as CouponCode;
                     });
                 return newCoupons;

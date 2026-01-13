@@ -6,11 +6,11 @@ import CartPage from './components/CartPage'
 import NotFound from './components/NotFound'
 import CheckoutPage from './components/CheckoutPage'
 import UserProfile from './components/UserProfile'
+import OrderHistory from './components/OrderHistory'
 import { auth } from './components/FirebaseConfig'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { useEffect, useState } from 'react'
-import { useGetUserQuery, 
-         useGetOrdersQuery } from './redux/services/firestoreApi'
+import { useGetUserQuery, useGetOrdersQuery } from './redux/services/firestoreApi'
 import { fetchProducts } from './redux/slices/ProductsSlice'
 import { fetchCoupons } from './redux/slices/CouponsSlice'
 import { setUserOrders } from './redux/slices/OrdersSlice'
@@ -143,6 +143,7 @@ function App() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/orders" element={<OrderHistory />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       </>

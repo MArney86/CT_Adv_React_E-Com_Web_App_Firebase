@@ -67,7 +67,7 @@ const sampleCoupons = [
         code: 'CODINGTEMPLE',
         discount: 99.99,
         expiry_date: {
-            date: new Date('2026-01-01'),
+            date: new Date('2026-12-31T12:00:00Z'), // Dec 31, 2026 @ 18:00 UTC+6 (12:00 UTC)
             is_set: true
         },
         is_active: true,

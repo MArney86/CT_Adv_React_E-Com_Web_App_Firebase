@@ -54,7 +54,7 @@ const CartPage = () => {
     const handleCouponCode = () => {
         setCodeError(''); // Clear previous errors
         setCouponSuccess(''); // Clear previous success message
-        const foundCoupon = couponCodes.find((code: CouponCode) => code.code === couponCode);
+        const foundCoupon = couponCodes.find((code: CouponCode) => code.code.toUpperCase() === couponCode.toUpperCase());
         
         if (!foundCoupon) {
             setCodeError('Coupon code not found.');
@@ -65,7 +65,7 @@ const CartPage = () => {
             setCodeError('This coupon code is not active.');
             return;
         }
-
+        
         if (foundCoupon.expiryDate.isSet && new Date(foundCoupon.expiryDate.date) < new Date()) {
             setCodeError('This coupon code has expired.');
             // Update coupon status to inactive
