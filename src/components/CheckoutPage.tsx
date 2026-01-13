@@ -9,6 +9,10 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { CartItem } from '../interfaces/CartItem';
+import type { RootState, AppDispatch } from '../redux/store/store';
+import { updateOrderDetails } from '../redux/slices/OrdersSlice';
+import { updateUserDetails } from '../redux/slices/UserSlice';
+import { resetCart } from '../redux/slices/CartSlice';
 
 interface CustomerInfo {
     firstName: string;
@@ -34,8 +38,10 @@ const CheckoutPage = () => {
     const navigate = useNavigate();
     
     // Get cart data from location state or fallback to Redux store
-    const dispatch = useDispatch();
-    const cartItemsFromRedux: CartItem[] = useSelector((state: { cart: { items: CartItem[] } }) => state.cart.items);
+    const dispatch = useDispatch<AppDispatch>();
+    const cartItemsFromRedux: CartItem[] = useSelector((state: RootState) => state.cart.items);
+    const currentUser = useSelector((state: RootState) => state.user.currentUser);
+    const cartOid = useSelector((state: RootState) => state.cart.oid);
     const cartData: { cartItems: CartItem[]; shipping: number; couponDiscount: number } = location.state || {};
     const cartItems: CartItem[] = cartData.cartItems || cartItemsFromRedux;
     const shippingFromCart: number = cartData.shipping || 5;
@@ -101,16 +107,42 @@ const CheckoutPage = () => {
         return newErrors.length === 0;
     };
 
-    const handleSubmitOrder = () => {
+    const handleSubmitOrder = async () => {
         if (!validateForm()) {
             return;
         }
 
-        // Simulate order processing
-        setTimeout(() => {
+        if (!currentUser) {
+            setErrors(['Please login to complete your order']);
+            return;
+        }
+
+        if (cartOid === null) {
+            setErrors(['No active cart found']);
+            return;
+        }
+
+        try {
+            // Update the cart/order to mark as submitted
+            await dispatch(updateOrderDetails({ 
+                oid: cartOid, 
+                details: { 
+                    current: false,
+                    order_submitted: true 
+                } 
+            })).unwrap();
+
+            // No need to update user's orders array here - it was already added at index 0 when cart was created
+
+            // Show success message
             setOrderSuccess(true);
-            dispatch({ type: 'cart/clearCart' }); // Clear cart in Redux store
-        }, 2000);
+            
+            // Clear local cart state
+            dispatch(resetCart());
+        } catch (error) {
+            setErrors(['Failed to submit order. Please try again.']);
+            console.error('Order submission error:', error);
+        }
     };
 
     // Redirect to cart if no items
@@ -399,7 +431,7 @@ const CheckoutPage = () => {
                                 {/* Cart Items */}
                                 <div className="mb-4">
                                     {cartItems.map((item: CartItem) => (
-                                        <div key={item.id} className="d-flex justify-content-between align-items-center mb-2">
+                                        <div key={item.ciid} className="d-flex justify-content-between align-items-center mb-2">
                                             <div>
                                                 <small className="text-muted">{item.quantity}x</small>
                                                 <span className="ms-2">{item.title.substring(0, 20)}...</span>

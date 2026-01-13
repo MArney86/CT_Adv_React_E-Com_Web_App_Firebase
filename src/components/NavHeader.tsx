@@ -21,6 +21,7 @@ const NavHeader: React.FC<NavHeaderProps> = ({ user, setUser }) => {
                         <Nav.Link href="/">Home</Nav.Link>
                         <Navbar.Brand href="/">FakeStore</Navbar.Brand>
                         <Nav.Link href="/cart">Cart</Nav.Link>
+                        {user && <Nav.Link href="/profile">Profile</Nav.Link>}
                         <Nav.Item>
                             <p>{user?.email}</p>
                         </Nav.Item>

@@ -17,6 +17,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
+    const [showDropdown, setShowDropdown] = useState<boolean>(false);
 
     const handleLogin = async (e: FormEvent) => {
         e.preventDefault();
@@ -28,6 +29,10 @@ const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
         try {
             await signInWithEmailAndPassword(auth, email, password);
             alert("Login successful!");
+            setShowDropdown(false);
+            setEmail("");
+            setPassword("");
+            setError(null);
         } catch (err: any) {
             setError("Error Logging In: " + err.message);
         }
@@ -54,7 +59,20 @@ const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
             <Button variant="primary" onClick={handleLogout}>Logout</Button>
         ) : (
             <div>
-                <DropdownButton align="end" title="Login" variant="success" id="dropdown-btn-login" autoClose="outside">
+                <DropdownButton 
+                    align="end" 
+                    title="Login" 
+                    variant="success" 
+                    id="dropdown-btn-login" 
+                    autoClose="outside"
+                    show={showDropdown}
+                    onToggle={(isOpen) => {
+                        setShowDropdown(isOpen);
+                        if (!isOpen) {
+                            setError(null);
+                        }
+                    }}
+                >
                     <Dropdown.Item>
                         <Form>
                             <Form.Group controlId="formBasicEmail">
@@ -74,6 +92,11 @@ const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
                                     placeholder="Enter password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleLogin(e as any);
+                                        }
+                                    }}
                                 />
                             </Form.Group>
                             <Button variant="primary" type="submit" onClick={handleLogin}>
@@ -85,7 +108,6 @@ const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
                 </DropdownButton>
             </div>
         )}
-        {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
         </>
     )
 }

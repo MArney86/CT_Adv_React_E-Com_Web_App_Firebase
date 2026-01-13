@@ -2,7 +2,8 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import type { CartItem } from '../../interfaces/CartItem';
 import { Cart } from '../../interfaces/Cart';
 import { updateOrderDetails, addOrder } from './OrdersSlice';
-import { doc, updateDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { updateUserDetails } from './UserSlice';
+import { doc, updateDoc, setDoc, collection, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { db } from '../../components/FirebaseConfig';
 
 // Async thunk for adding items that also manages order creation/updating
@@ -95,6 +96,23 @@ export const addItem = createAsyncThunk<
             
             // Add order to Firebase and Redux
             await dispatch(addOrder(newOrder));
+            
+            // Get user document and add oid to orders array at index 0
+            const userRef = doc(db, 'users', uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const currentOrders = userData.orders || [];
+                // Add new order at the beginning of the array
+                const updatedOrders = [newOrderId, ...currentOrders];
+                
+                await dispatch(updateUserDetails({ 
+                    uid: uid, 
+                    details: { orders: updatedOrders } 
+                }));
+            }
+            
             console.log('CartSlice: Order added, returning item with oid =', newOrderId);
         } catch (error) {
             console.error('CartSlice: Error creating cart:', error);
@@ -256,6 +274,12 @@ const cartSlice = createSlice({
             state.error = null;
             console.log('CartSlice: Cart loaded, state.items.length =', state.items.length);
         },
+        resetCart: (state) => {
+            state.items = [];
+            state.oid = null;
+            state.status = 'idle';
+            state.error = null;
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -340,6 +364,6 @@ const cartSlice = createSlice({
     },
 });
 
-export const { setOrderId, loadCartFromOrder } = cartSlice.actions;
+export const { setOrderId, loadCartFromOrder, resetCart } = cartSlice.actions;
 
 export default cartSlice.reducer;

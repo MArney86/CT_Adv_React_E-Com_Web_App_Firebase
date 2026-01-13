@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { collection, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { User } from '../../interfaces/User';
 import { db } from '../../components/FirebaseConfig';
 
@@ -19,9 +19,10 @@ export const addUser = createAsyncThunk<User, User>(
             const userDocRef = doc(db, 'users', user.uid);
             await setDoc(userDocRef, user);
             return user;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error adding user to Firebase:', error);
-            return rejectWithValue(error.message || 'Failed to add user to database');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to add user to database';
+            return rejectWithValue(errorMessage);
         }
     }
 );
@@ -33,8 +34,9 @@ export const removeUserFromFirestore = createAsyncThunk(
         try {
             await deleteDoc(doc(db, 'users', userId));
             return userId;
-        } catch (error) {
-            throw new Error('Failed to remove user');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Failed to remove user: ${errorMessage}`);
         }
     }
 );
@@ -47,8 +49,9 @@ export const updateUserDetails = createAsyncThunk(
         try {
             await updateDoc(userRef, details);
             return { uid, details };
-        } catch (error) {
-            throw new Error('Failed to update user details');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            throw new Error(`Failed to update user details: ${errorMessage}`);
         }
     }
 );

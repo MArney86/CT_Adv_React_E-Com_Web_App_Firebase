@@ -5,6 +5,7 @@ import Home from './components/Home'
 import CartPage from './components/CartPage'
 import NotFound from './components/NotFound'
 import CheckoutPage from './components/CheckoutPage'
+import UserProfile from './components/UserProfile'
 import { auth } from './components/FirebaseConfig'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { useEffect, useState } from 'react'
@@ -34,10 +35,10 @@ function App() {
     const userState = useSelector((state: any) => state.user?.currentUser)
     const cartState = useSelector((state: any) => state.cart?.items || []);
     
-    const { data: ordersData, isLoading: ordersLoading, error: ordersError } = useGetOrdersQuery(user ? user.uid : "", {
+    const { data: ordersData } = useGetOrdersQuery(user ? user.uid : "", {
         skip: !user
     });
-    const { data: userData, isLoading: userLoading, error: userError } = useGetUserQuery(user?.uid || "", {
+    const { data: userData, isLoading: userLoading } = useGetUserQuery(user?.uid || "", {
         skip: !user || userState !== null
     });
 
@@ -93,7 +94,7 @@ function App() {
             if (userData) {
                 dispatch(setCurrentUser(userData))
             } else if (!userLoading && !userData && userState === null) {
-                let newUser: UserInterface = {
+                const newUser: UserInterface = {
                     uid: user.uid,
                     email: user.email,
                     username: user.displayName,
@@ -121,7 +122,7 @@ function App() {
                 }
             }
         }
-    }, [ordersData, userData, user, userLoading, dispatch, ordersState, cartState.length, userState])
+    }, [cartState.length, couponState.length, couponStatus, dispatch, ordersData, ordersState, prodState.length, prodStatus, user, userData, userLoading, userState])
 
     // Set error state based on queries (skip user/coupon/order errors as they might just be empty)
     useEffect(() => {
@@ -141,6 +142,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       </>
