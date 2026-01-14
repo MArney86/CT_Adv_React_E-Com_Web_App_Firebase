@@ -22,8 +22,8 @@ export const firestoreApi = createApi({
                         products = productsSnapshot.docs.map(doc => doc.data() as Product);
                     }
                     return { data: products };
-                } catch (error) {
-                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch products' } };
+                } catch (error: any) {
+                    return { error: { status: 'FETCH_ERROR', error: `Failed to fetch products: ${error.message}` } };
                 }
             },
             providesTags: ['Products'],
@@ -38,8 +38,8 @@ export const firestoreApi = createApi({
                         coupons = couponsSnapshot.docs.map(doc => doc.data() as CouponCode);
                     }
                     return { data: coupons };
-                } catch (error) {
-                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch coupons' } };
+                } catch (error: any) {
+                    return { error: { status: 'FETCH_ERROR', error: `Failed to fetch coupons: ${error.message}` } };
                 }
             },
             providesTags: ['Coupons'],
@@ -81,8 +81,8 @@ export const firestoreApi = createApi({
                     };
                     
                     return { data: user };
-                } catch (error) {
-                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch user' } };
+                } catch (error: any) {
+                    return { error: { status: 'FETCH_ERROR', error: `Failed to fetch user: ${error.message}` } };
                 }
             },
             providesTags: ['Users'],
@@ -170,8 +170,8 @@ export const firestoreApi = createApi({
                             } as Cart;
                         });
                     return { data: orders };
-                } catch (error) {
-                    return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch orders' } };
+                } catch (error: any) {
+                    return { error: { status: 'FETCH_ERROR', error: `Failed to fetch orders: ${error.message}` } };
                 }
             },
             providesTags: ['Orders'],

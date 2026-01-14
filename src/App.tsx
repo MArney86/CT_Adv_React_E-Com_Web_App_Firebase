@@ -7,6 +7,7 @@ import NotFound from './components/NotFound'
 import CheckoutPage from './components/CheckoutPage'
 import UserProfile from './components/UserProfile'
 import OrderHistory from './components/OrderHistory'
+import ProductManagement from './components/ProductManagement'
 import { auth } from './components/FirebaseConfig'
 import { onAuthStateChanged, type User } from 'firebase/auth'
 import { useEffect, useState } from 'react'
@@ -17,7 +18,7 @@ import { setUserOrders } from './redux/slices/OrdersSlice'
 import { setCurrentUser, addUser } from './redux/slices/UserSlice'
 import { loadCartFromOrder } from './redux/slices/CartSlice'
 import { useSelector, useDispatch } from 'react-redux'  
-import type { AppDispatch } from './redux/store/store'
+import type { AppDispatch, RootState } from './redux/store/store'
 import { User as UserInterface } from './interfaces/User'   
 
 function App() {
@@ -27,13 +28,13 @@ function App() {
     const dispatch = useDispatch<AppDispatch>()
     
     // Call all hooks at the top level with safe guards
-    const prodState = useSelector((state: any) => state.products?.items || [])
-    const prodStatus = useSelector((state: any) => state.products?.status || 'idle')
-    const couponState = useSelector((state: any) => state.coupons?.codes || [])
-    const couponStatus = useSelector((state: any) => state.coupons?.status || 'idle')
-    const ordersState = useSelector((state: any) => state.orders?.userOrders || [])
-    const userState = useSelector((state: any) => state.user?.currentUser)
-    const cartState = useSelector((state: any) => state.cart?.items || []);
+    const prodState = useSelector((state: RootState) => state.products?.items || [])
+    const prodStatus = useSelector((state: RootState) => state.products?.status || 'idle')
+    const couponState = useSelector((state: RootState) => state.coupons?.codes || [])
+    const couponStatus = useSelector((state: RootState) => state.coupons?.status || 'idle')
+    const ordersState = useSelector((state: RootState) => state.orders?.userOrders || [])
+    const userState = useSelector((state: RootState) => state.user?.currentUser)
+    const cartState = useSelector((state: RootState) => state.cart?.items || []);
     
     const { data: ordersData } = useGetOrdersQuery(user ? user.uid : "", {
         skip: !user
@@ -104,7 +105,17 @@ function App() {
                         isDeleted: false,
                         deletionDate: null
                     },
-                    orders: []
+                    orders: [],
+                    shippingInfo: {
+                        firstName: '',
+                        lastName: '',
+                        email: '',
+                        phoneNumber: '',
+                        physicalAddress: '',
+                        city: '',
+                        state: '',
+                        zipCode: ''
+                    }
                 };
                 dispatch(addUser(newUser) as any);
             }
@@ -148,6 +159,7 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/orders" element={<OrderHistory />} />
+        <Route path="/products" element={<ProductManagement />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       </>

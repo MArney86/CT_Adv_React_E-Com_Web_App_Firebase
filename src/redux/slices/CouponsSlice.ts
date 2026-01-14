@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../components/FirebaseConfig';
 import type { CouponCode } from '../../interfaces/CouponCode';
 import { populateSampleCoupons } from '../../utlilities/populateSampleCoupons';
@@ -83,8 +83,8 @@ export const fetchCoupons = createAsyncThunk<CouponCode[]>(
                     });
                 return newCoupons;
             }
-        } catch (error) {
-            throw new Error('Failed to fetch coupons');
+        } catch (error: any) {
+            throw new Error(`Failed to fetch coupons: ${error.message}`);
         }
     }
 );
@@ -95,7 +95,7 @@ export const addCoupon = createAsyncThunk<CouponCode, CouponCode>(
     async (coupon: CouponCode) => {
         const couponsCollection = collection(db, 'coupon_codes');
             try {
-                const docRef = await addDoc(couponsCollection, {
+                await addDoc(couponsCollection, {
                     ccid: coupon.ccid,
                     code: coupon.code,
                     discount: coupon.discount,
@@ -112,8 +112,8 @@ export const addCoupon = createAsyncThunk<CouponCode, CouponCode>(
                 });
 
                 return coupon
-            } catch (error) {
-                throw new Error('Failed to add coupon to db');
+            } catch (error: any) {
+                throw new Error(`Failed to add coupon to db: ${error.message}`);
             }
     }
 );
@@ -125,8 +125,8 @@ export const removeCoupon = createAsyncThunk(
         try {
             await deleteDoc(doc(db, 'coupon_codes', couponId));
             return couponId;
-        } catch (error) {
-            throw new Error('Failed to remove coupon');
+        } catch (error: any) {
+            throw new Error(`Failed to remove coupon: ${error.message}`);
         }
     }
 );
@@ -139,8 +139,8 @@ export const updateCouponDetails = createAsyncThunk(
         try {
             await updateDoc(couponRef, details);
             return { ccid, details };
-        } catch (error) {
-            throw new Error('Failed to update coupon details');
+        } catch (error: any) {
+            throw new Error(`Failed to update coupon details: ${error.message}`);
         }
     }
 );
