@@ -112,13 +112,17 @@ function App() {
             // Load cart from orders if needed
             if (cartState.length === 0 && ordersState.length > 0) {
                 console.log('App.tsx: Checking if should load cart from orders');
-                console.log('App.tsx: ordersState[0] =', ordersState[0]);
-                if (!ordersState[0].order_paid &&
-                    !ordersState[0].order_fulfilled &&
-                    !ordersState[0].order_delivered &&
-                    !ordersState[0].order_submitted) {
-                        console.log('App.tsx: Loading cart from order, products =', ordersState[0].products);
-                        dispatch(loadCartFromOrder({ items: ordersState[0].products, oid: ordersState[0].oid }))
+                // Find the current cart (current === true)
+                const currentCart = ordersState.find((order: any) => order.current === true);
+                console.log('App.tsx: currentCart =', currentCart);
+                
+                if (currentCart && 
+                    !currentCart.order_paid &&
+                    !currentCart.order_fulfilled &&
+                    !currentCart.order_delivered &&
+                    !currentCart.order_submitted) {
+                        console.log('App.tsx: Loading cart from order, products =', currentCart.products);
+                        dispatch(loadCartFromOrder({ items: currentCart.products, oid: currentCart.oid }))
                 }
             }
         }

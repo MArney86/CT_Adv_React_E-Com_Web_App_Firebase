@@ -47,13 +47,40 @@ export const firestoreApi = createApi({
         getUser: builder.query({
             queryFn: async (userId: string) => {
                 try {
-                    const usersCollection = collection(db, 'users');
-                    const usersSnapshot = await getDocs(usersCollection);
-                    let users: User[] = []
-                    if (!usersSnapshot.empty) {
-                        usersSnapshot.docs.map(doc => doc.data() as User);
+                    const userDocRef = doc(db, 'users', userId);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (!userDoc.exists()) {
+                        return { data: null };
                     }
-                    return { data: users.find(user => user.uid === userId) || null};
+                    
+                    const data = userDoc.data();
+                    const shippingInfoData = data.shipping_info || data.shippingInfo;
+                    
+                    const user: User = {
+                        uid: data.uid,
+                        email: data.email,
+                        username: data.username,
+                        created: data.created,
+                        isActive: data.isActive ?? true,
+                        accountDeleted: data.accountDeleted || data.account_deleted || {
+                            isDeleted: false,
+                            deletionDate: null
+                        },
+                        orders: data.orders || [],
+                        shippingInfo: {
+                            firstName: shippingInfoData?.first_name || shippingInfoData?.firstName || '',
+                            lastName: shippingInfoData?.last_name || shippingInfoData?.lastName || '',
+                            email: shippingInfoData?.email || '',
+                            phoneNumber: shippingInfoData?.phone_number || shippingInfoData?.phoneNumber || '',
+                            physicalAddress: shippingInfoData?.address || shippingInfoData?.physicalAddress || '',
+                            city: shippingInfoData?.addr_city || shippingInfoData?.city || '',
+                            state: shippingInfoData?.addr_state || shippingInfoData?.state || '',
+                            zipCode: shippingInfoData?.addr_zip_code || shippingInfoData?.zipCode || ''
+                        }
+                    };
+                    
+                    return { data: user };
                 } catch (error) {
                     return { error: { status: 'FETCH_ERROR', error: 'Failed to fetch user' } };
                 }
@@ -77,15 +104,14 @@ export const firestoreApi = createApi({
                         return { data: [] };
                     }
                     
-                    // Filter for this user's current cart (current: true)
+                    // Get ALL of this user's carts (both current and past orders)
                     const carts: Cart[] = cartsSnapshot.docs
                         .filter(doc => {
                             const data = doc.data();
                             // Filter out initialization documents and get only this user's carts
                             return doc.id !== 'Initialization' && 
                                    doc.id !== 'Initialize' && 
-                                   data.uid === userId &&
-                                   data.current === true; // Only get current cart
+                                   data.uid === userId;
                         })
                         .map(doc => {
                             const data = doc.data();

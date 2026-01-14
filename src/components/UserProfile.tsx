@@ -30,12 +30,34 @@ const UserProfile = () => {
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+    
+    // Shipping info state
+    const [shippingInfo, setShippingInfo] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        physicalAddress: '',
+        city: '',
+        state: '',
+        zipCode: ''
+    });
 
     // Initialize form fields when user data loads
     useEffect(() => {
         if (currentUser) {
             setUsername(currentUser.username || '');
             setEmail(currentUser.email || '');
+            setShippingInfo({
+                firstName: currentUser.shippingInfo?.firstName || '',
+                lastName: currentUser.shippingInfo?.lastName || '',
+                email: currentUser.shippingInfo?.email || '',
+                phoneNumber: currentUser.shippingInfo?.phoneNumber || '',
+                physicalAddress: currentUser.shippingInfo?.physicalAddress || '',
+                city: currentUser.shippingInfo?.city || '',
+                state: currentUser.shippingInfo?.state || '',
+                zipCode: currentUser.shippingInfo?.zipCode || ''
+            });
             setIsCheckingAuth(false);
         }
     }, [currentUser]);
@@ -64,6 +86,16 @@ const UserProfile = () => {
         if (currentUser) {
             setUsername(currentUser.username || '');
             setEmail(currentUser.email || '');
+            setShippingInfo({
+                firstName: currentUser.shippingInfo?.firstName || '',
+                lastName: currentUser.shippingInfo?.lastName || '',
+                email: currentUser.shippingInfo?.email || '',
+                phoneNumber: currentUser.shippingInfo?.phoneNumber || '',
+                physicalAddress: currentUser.shippingInfo?.physicalAddress || '',
+                city: currentUser.shippingInfo?.city || '',
+                state: currentUser.shippingInfo?.state || '',
+                zipCode: currentUser.shippingInfo?.zipCode || ''
+            });
         }
         setNewPassword('');
         setConfirmPassword('');
@@ -110,11 +142,43 @@ const UserProfile = () => {
         }
 
         try {
+            // Prepare updates object
+            const updates: any = {};
+            
             // Update username in Firestore
             if (username !== currentUser.username) {
+                updates.username = username;
+            }
+            
+            // Update shipping info with Firestore snake_case field names
+            const hasShippingChanges = 
+                shippingInfo.firstName !== currentUser.shippingInfo?.firstName ||
+                shippingInfo.lastName !== currentUser.shippingInfo?.lastName ||
+                shippingInfo.email !== currentUser.shippingInfo?.email ||
+                shippingInfo.phoneNumber !== currentUser.shippingInfo?.phoneNumber ||
+                shippingInfo.physicalAddress !== currentUser.shippingInfo?.physicalAddress ||
+                shippingInfo.city !== currentUser.shippingInfo?.city ||
+                shippingInfo.state !== currentUser.shippingInfo?.state ||
+                shippingInfo.zipCode !== currentUser.shippingInfo?.zipCode;
+            
+            if (hasShippingChanges) {
+                updates.shipping_info = {
+                    first_name: shippingInfo.firstName,
+                    last_name: shippingInfo.lastName,
+                    email: shippingInfo.email,
+                    phone_number: shippingInfo.phoneNumber,
+                    address: shippingInfo.physicalAddress,
+                    addr_city: shippingInfo.city,
+                    addr_state: shippingInfo.state,
+                    addr_zip_code: shippingInfo.zipCode
+                };
+            }
+            
+            // Save updates to Firestore
+            if (Object.keys(updates).length > 0) {
                 await dispatch(updateUserDetails({
                     uid: currentUser.uid,
-                    details: { username }
+                    details: updates
                 })).unwrap();
             }
 
@@ -240,7 +304,7 @@ const UserProfile = () => {
                                         <Form.Control 
                                             plaintext 
                                             readOnly 
-                                            defaultValue={currentUser.uid}
+                                            value={currentUser.uid}
                                             className="bg-light px-2"
                                         />
                                     </Col>
@@ -263,7 +327,7 @@ const UserProfile = () => {
                                             <Form.Control 
                                                 plaintext 
                                                 readOnly 
-                                                defaultValue={username || 'Not set'}
+                                                value={username || 'Not set'}
                                                 className="bg-light px-2"
                                             />
                                         )}
@@ -287,7 +351,7 @@ const UserProfile = () => {
                                             <Form.Control 
                                                 plaintext 
                                                 readOnly 
-                                                defaultValue={email || 'Not set'}
+                                                value={email || 'Not set'}
                                                 className="bg-light px-2"
                                             />
                                         )}
@@ -303,7 +367,7 @@ const UserProfile = () => {
                                         <Form.Control 
                                             plaintext 
                                             readOnly 
-                                            defaultValue={new Date(currentUser.created).toLocaleDateString()}
+                                            value={new Date(currentUser.created).toLocaleDateString()}
                                             className="bg-light px-2"
                                         />
                                     </Col>
@@ -318,7 +382,7 @@ const UserProfile = () => {
                                         <Form.Control 
                                             plaintext 
                                             readOnly 
-                                            defaultValue={currentUser.isActive ? 'Active' : 'Inactive'}
+                                            value={currentUser.isActive ? 'Active' : 'Inactive'}
                                             className="bg-light px-2"
                                         />
                                     </Col>
@@ -333,9 +397,204 @@ const UserProfile = () => {
                                         <Form.Control 
                                             plaintext 
                                             readOnly 
-                                            defaultValue={currentUser.orders?.length || 0}
+                                            value={currentUser.orders?.length || 0}
                                             className="bg-light px-2"
                                         />
+                                    </Col>
+                                </Form.Group>
+
+                                <hr className="my-4" />
+                                <h5 className="mb-3">Shipping Information</h5>
+
+                                {/* First Name */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        First Name:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="text"
+                                                value={shippingInfo.firstName}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, firstName: e.target.value})}
+                                                placeholder="Enter first name"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.firstName || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* Last Name */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        Last Name:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="text"
+                                                value={shippingInfo.lastName}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, lastName: e.target.value})}
+                                                placeholder="Enter last name"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.lastName || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* Shipping Email */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        Contact Email:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="email"
+                                                value={shippingInfo.email}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, email: e.target.value})}
+                                                placeholder="Enter contact email"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.email || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* Phone Number */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        Phone Number:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="tel"
+                                                value={shippingInfo.phoneNumber}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, phoneNumber: e.target.value})}
+                                                placeholder="Enter phone number"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.phoneNumber || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* Physical Address */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        Address:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="text"
+                                                value={shippingInfo.physicalAddress}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, physicalAddress: e.target.value})}
+                                                placeholder="Enter street address"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.physicalAddress || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* City */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        City:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="text"
+                                                value={shippingInfo.city}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, city: e.target.value})}
+                                                placeholder="Enter city"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.city || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* State */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        State:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="text"
+                                                value={shippingInfo.state}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, state: e.target.value})}
+                                                placeholder="Enter state"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.state || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
+                                    </Col>
+                                </Form.Group>
+
+                                {/* Zip Code */}
+                                <Form.Group as={Row} className="mb-3">
+                                    <Form.Label column sm={3}>
+                                        Zip Code:
+                                    </Form.Label>
+                                    <Col sm={9}>
+                                        {isEditing ? (
+                                            <Form.Control
+                                                type="text"
+                                                value={shippingInfo.zipCode}
+                                                onChange={(e) => setShippingInfo({...shippingInfo, zipCode: e.target.value})}
+                                                placeholder="Enter zip code"
+                                            />
+                                        ) : (
+                                            <Form.Control 
+                                                plaintext 
+                                                readOnly 
+                                                value={shippingInfo.zipCode || 'Not set'}
+                                                className="bg-light px-2"
+                                            />
+                                        )}
                                     </Col>
                                 </Form.Group>
 

@@ -5,14 +5,16 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { CartItem } from '../interfaces/CartItem';
 import type { RootState, AppDispatch } from '../redux/store/store';
+import type { CouponCode } from '../interfaces/CouponCode';
 import { updateOrderDetails } from '../redux/slices/OrdersSlice';
 import { updateUserDetails } from '../redux/slices/UserSlice';
 import { resetCart } from '../redux/slices/CartSlice';
+import { updateCouponDetails } from '../redux/slices/CouponsSlice';
 
 interface CustomerInfo {
     firstName: string;
@@ -42,20 +44,22 @@ const CheckoutPage = () => {
     const cartItemsFromRedux: CartItem[] = useSelector((state: RootState) => state.cart.items);
     const currentUser = useSelector((state: RootState) => state.user.currentUser);
     const cartOid = useSelector((state: RootState) => state.cart.oid);
-    const cartData: { cartItems: CartItem[]; shipping: number; couponDiscount: number } = location.state || {};
+    const couponCodes = useSelector((state: RootState) => state.coupons.codes);
+    const cartData: { cartItems: CartItem[]; shipping: number; couponDiscount: number; couponCode?: string } = location.state || {};
     const cartItems: CartItem[] = cartData.cartItems || cartItemsFromRedux;
     const shippingFromCart: number = cartData.shipping || 5;
     const couponDiscountFromCart: number = cartData.couponDiscount || 0;
+    const couponCodeFromCart: string = cartData.couponCode || '';
 
     const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: '',
-        state: '',
-        zipCode: '',
+        firstName: currentUser?.shippingInfo?.firstName || '',
+        lastName: currentUser?.shippingInfo?.lastName || '',
+        email: currentUser?.shippingInfo?.email || currentUser?.email || '',
+        phone: currentUser?.shippingInfo?.phoneNumber || '',
+        address: currentUser?.shippingInfo?.physicalAddress || '',
+        city: currentUser?.shippingInfo?.city || '',
+        state: currentUser?.shippingInfo?.state || '',
+        zipCode: currentUser?.shippingInfo?.zipCode || '',
         country: ''
     });
 
@@ -68,7 +72,10 @@ const CheckoutPage = () => {
 
     const [paymentMethod, setPaymentMethod] = useState<string>('credit-card');
     const shipping: number = shippingFromCart;
-    const [couponDiscount] = useState<number>(couponDiscountFromCart);
+    const [couponDiscount, setCouponDiscount] = useState<number>(couponDiscountFromCart);
+    const [couponCode, setCouponCode] = useState<string>(couponCodeFromCart);
+    const [couponError, setCouponError] = useState<string>('');
+    const [couponSuccess, setCouponSuccess] = useState<string>('');
     const [orderSuccess, setOrderSuccess] = useState<boolean>(false);
     const [errors, setErrors] = useState<string[]>([]);
 
@@ -76,12 +83,79 @@ const CheckoutPage = () => {
     const tax = subtotal * 0.08; // 8% tax
     const total = subtotal + shipping + tax - couponDiscount;
 
+    // Update customer info when currentUser changes
+    useEffect(() => {
+        if (currentUser?.shippingInfo) {
+            setCustomerInfo({
+                firstName: currentUser.shippingInfo.firstName || '',
+                lastName: currentUser.shippingInfo.lastName || '',
+                email: currentUser.shippingInfo.email || currentUser.email || '',
+                phone: currentUser.shippingInfo.phoneNumber || '',
+                address: currentUser.shippingInfo.physicalAddress || '',
+                city: currentUser.shippingInfo.city || '',
+                state: currentUser.shippingInfo.state || '',
+                zipCode: currentUser.shippingInfo.zipCode || '',
+                country: ''
+            });
+        }
+    }, [currentUser]);
+
     const handleCustomerInfoChange = (field: keyof CustomerInfo, value: string) => {
         setCustomerInfo(prev => ({ ...prev, [field]: value }));
     };
 
     const handlePaymentInfoChange = (field: keyof PaymentInfo, value: string) => {
         setPaymentInfo(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleApplyCoupon = () => {
+        setCouponError('');
+        setCouponSuccess('');
+        
+        if (!couponCode.trim()) {
+            setCouponError('Please enter a coupon code.');
+            return;
+        }
+        
+        const foundCoupon = couponCodes.find((code: CouponCode) => code.code.toUpperCase() === couponCode.toUpperCase());
+        
+        if (!foundCoupon) {
+            setCouponError('Coupon code not found.');
+            return;
+        }
+
+        if (!foundCoupon.isActive) {
+            setCouponError('This coupon code is not active.');
+            return;
+        }
+        
+        if (foundCoupon.expiryDate.isSet && new Date(foundCoupon.expiryDate.date) < new Date()) {
+            setCouponError('This coupon code has expired.');
+            // Update coupon status to inactive
+            dispatch(updateCouponDetails({ 
+                ccid: foundCoupon.ccid, 
+                details: { isActive: false } 
+            }));
+            return;
+        }
+
+        // Check minimum purchase requirement
+        if (foundCoupon.minPurchase.isSet && subtotal < foundCoupon.minPurchase.value) {
+            setCouponError(`Minimum purchase of $${foundCoupon.minPurchase.value.toFixed(2)} required.`);
+            return;
+        }
+
+        // Calculate discount
+        const discountAmount = foundCoupon.isPercentage
+            ? (subtotal * foundCoupon.discount) / 100
+            : foundCoupon.discount;
+        
+        // Ensure discount doesn't exceed subtotal
+        const finalDiscount = Math.min(discountAmount, subtotal);
+            
+        setCouponDiscount(finalDiscount);
+        setCouponSuccess(`Coupon applied! You saved $${finalDiscount.toFixed(2)}`);
+        setCouponError('');
     };
 
     const validateForm = (): boolean => {
@@ -123,12 +197,15 @@ const CheckoutPage = () => {
         }
 
         try {
-            // Update the cart/order to mark as submitted
+            // Update the cart/order to mark as submitted and complete all order stages
             await dispatch(updateOrderDetails({ 
                 oid: cartOid, 
                 details: { 
                     current: false,
-                    order_submitted: true 
+                    order_submitted: true,
+                    order_paid: true,
+                    order_fulfilled: true,
+                    order_delivered: true
                 } 
             })).unwrap();
 
@@ -467,9 +544,38 @@ const CheckoutPage = () => {
 
                                 <hr className="my-4" />
 
-                                <div className="d-flex justify-content-between mb-5">
+                                <div className="d-flex justify-content-between mb-4">
                                     <h5 className="text-uppercase fw-bold">Total:</h5>
                                     <h5 className="fw-bold">${total.toFixed(2)}</h5>
+                                </div>
+
+                                {/* Coupon Code Section */}
+                                <div className="mb-4">
+                                    <Form.Label className="fw-bold">Coupon Code</Form.Label>
+                                    <div className="d-flex gap-2">
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Enter coupon code"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value)}
+                                        />
+                                        <Button 
+                                            variant="outline-dark"
+                                            onClick={handleApplyCoupon}
+                                        >
+                                            Apply
+                                        </Button>
+                                    </div>
+                                    {couponError && (
+                                        <Alert variant="danger" className="mt-2 mb-0 py-2">
+                                            <small>{couponError}</small>
+                                        </Alert>
+                                    )}
+                                    {couponSuccess && (
+                                        <Alert variant="success" className="mt-2 mb-0 py-2">
+                                            <small>{couponSuccess}</small>
+                                        </Alert>
+                                    )}
                                 </div>
 
                                 <Button 

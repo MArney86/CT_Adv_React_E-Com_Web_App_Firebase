@@ -9,4 +9,14 @@ export interface User {
     deletionDate: string | null; // ISO string format for serialization
   };
   orders: number[];
+  shippingInfo: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    physicalAddress: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
 }
