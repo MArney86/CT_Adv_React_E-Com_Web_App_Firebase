@@ -208,8 +208,8 @@ const ProductManagement = () => {
             setSuccessMessage('Product deleted successfully!');
             handleCloseModals();
             setTimeout(() => setSuccessMessage(''), 3000);
-        } catch (error) {
-            setErrorMessage('Failed to delete product. Please try again.');
+        } catch (error: any) {
+            setErrorMessage(`Failed to delete product. Please try again. ${error.message}`);
             handleCloseModals();
         }
     };

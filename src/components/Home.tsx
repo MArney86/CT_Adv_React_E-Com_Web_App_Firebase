@@ -2,22 +2,28 @@ import Products from "../query/Products";
 import Container from 'react-bootstrap/Container';
 import { Col, Row } from "react-bootstrap";
 import FloatingLabel from 'react-bootstrap/FloatingLabel';
-import { useState } from "react";
-import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo } from "react";
+import { useSelector } from 'react-redux';
+import type { RootState } from '../redux/store/store';
 
 const Home: React.FC = () => {
     const [category, setCategory] = useState<string>("All");
+    
+    const products = useSelector((state: RootState) => state.products?.items || []);
+    const productsStatus = useSelector((state: RootState) => state.products?.status);
 
-    const { data: categories, isLoading, error } = useQuery<string[], Error>({
-        queryKey: ['categories'],
-        queryFn: async () => {
-            const response = await axios.get("https://fakestoreapi.com/products/categories");
-            return response.data;
-        }
-    });
+    // Extract unique categories from products
+    const categories = useMemo(() => {
+        const uniqueCategories = new Set<string>();
+        products.forEach(product => {
+            if (product.category) {
+                uniqueCategories.add(product.category);
+            }
+        });
+        return Array.from(uniqueCategories).sort();
+    }, [products]);
 
-    if (isLoading) {
+    if (productsStatus === 'loading') {
         return (
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
                 <div>Loading categories...</div>
@@ -25,18 +31,13 @@ const Home: React.FC = () => {
         );
     }
 
-    if (error) {
-        const errorMessage = error.message.includes('timeout') 
-            ? 'Connection timeout. Please check your internet connection and try again.'
-            : `Error: ${error.message}`;
+    if (productsStatus === 'error') {
         return (
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
-                <div className="text-danger">{errorMessage}</div>
+                <div className="text-danger">Error loading products. Please try again.</div>
             </Container>
         );
     }
-
-
 
     return (
         <Container>
@@ -52,9 +53,13 @@ const Home: React.FC = () => {
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}>
                             <option value="All">All</option>
-                            {categories?.map((cat: string, index: number) => (
-                                <option key={index} value={cat}>{cat}</option>
-                            )) || <option disabled>No categories available</option>}
+                            {categories.length > 0 ? (
+                                categories.map((cat: string, index: number) => (
+                                    <option key={index} value={cat}>{cat}</option>
+                                ))
+                            ) : (
+                                <option disabled>No categories available</option>
+                            )}
                         </select>
                     </FloatingLabel>
                 </Col>
