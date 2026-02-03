@@ -6,14 +6,14 @@ import DropdownButton from "react-bootstrap/DropdownButton";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import Alert from "react-bootstrap/Alert";
-import { collection, setDoc, doc } from "firebase/firestore";
+import { setDoc, doc } from "firebase/firestore";
 
 type RegisterButtonProps = {
     user: User | null;
     setUser: React.Dispatch<React.SetStateAction<User | null>>;
 };
 
-const RegisterButton: React.FC<RegisterButtonProps> = ({ user, setUser }) => {
+const RegisterButton: React.FC<RegisterButtonProps> = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);

@@ -1,6 +1,5 @@
 import {useState, type FormEvent} from 'react';
 import { signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
-import { useDispatch } from 'react-redux';
 import { auth } from './FirebaseConfig';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
@@ -13,7 +12,7 @@ type LoginButtonProps = {
     setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
-const LoginButton: React.FC<LoginButtonProps> = ({ user, setUser }) => {
+const LoginButton: React.FC<LoginButtonProps> = ({ user }) => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string | null>(null);

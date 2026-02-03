@@ -3,7 +3,7 @@ import type { CartItem } from '../../interfaces/CartItem';
 import { Cart } from '../../interfaces/Cart';
 import { updateOrderDetails, addOrder } from './OrdersSlice';
 import { updateUserDetails } from './UserSlice';
-import { doc, updateDoc, setDoc, collection, getDocs, query, where, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../components/FirebaseConfig';
 
 // Async thunk for adding items that also manages order creation/updating
@@ -130,7 +130,7 @@ export const removeItem = createAsyncThunk<
     { state: { cart: CartState; orders: { userOrders: Cart[] } } }
 >(
     'cart/removeItem',
-    async ({ ciid, uid }, { dispatch, getState }) => {
+    async ({ ciid }, { dispatch, getState }) => {
         const state = getState();
         const cartState = state.cart;
         const ordersState = state.orders.userOrders;
@@ -174,7 +174,7 @@ export const updateItemQuantity = createAsyncThunk<
     { state: { cart: CartState; orders: { userOrders: Cart[] } } }
 >(
     'cart/updateItemQuantity',
-    async ({ id, quantity, uid }, { dispatch, getState }) => {
+    async ({ id, quantity }, { dispatch, getState }) => {
         const state = getState();
         const cartState = state.cart;
         const ordersState = state.orders.userOrders;
@@ -224,7 +224,7 @@ export const clearCart = createAsyncThunk<
     { state: { cart: CartState; orders: { userOrders: Cart[] } } }
 >(
     'cart/clearCart',
-    async (uid, { getState, dispatch }) => {
+    async (_uid, { getState, dispatch }) => {
         const state = getState();
         const cartState = state.cart;
         

@@ -12,7 +12,6 @@ import type { CartItem } from '../interfaces/CartItem';
 import type { RootState, AppDispatch } from '../redux/store/store';
 import type { CouponCode } from '../interfaces/CouponCode';
 import { updateOrderDetails } from '../redux/slices/OrdersSlice';
-import { updateUserDetails } from '../redux/slices/UserSlice';
 import { resetCart } from '../redux/slices/CartSlice';
 import { updateCouponDetails } from '../redux/slices/CouponsSlice';
 

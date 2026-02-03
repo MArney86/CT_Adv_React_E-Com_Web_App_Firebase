@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { collection, setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { setDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { Cart } from '../../interfaces/Cart';
 import { db } from '../../components/FirebaseConfig';
 
 export const addOrder = createAsyncThunk<Cart, Cart>(
     'orders/addOrder',
-    async (order: Cart, { dispatch }) => {
+    async (order: Cart) => {
         
         try {
             // Use the order's oid as the document ID in the carts collection
