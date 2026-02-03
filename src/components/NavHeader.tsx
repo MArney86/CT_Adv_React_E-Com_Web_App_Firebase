@@ -1,6 +1,7 @@
 import React from 'react';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
+import { Link } from 'react-router-dom';
 import { type User } from 'firebase/auth'
 import RegisterButton from './RegisterButton';
 import LoginButton from './LoginButton';
@@ -18,12 +19,12 @@ const NavHeader: React.FC<NavHeaderProps> = ({ user, setUser }) => {
                 <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav className="me-auto justify-content-between w-100 px-5">
-                        <Nav.Link href="/">Home</Nav.Link>
-                        <Navbar.Brand href="/">FakeStore</Navbar.Brand>
-                        <Nav.Link href="/cart">Cart</Nav.Link>
-                        {user && <Nav.Link href="/products">Products</Nav.Link>}
-                        {user && <Nav.Link href="/orders">Orders</Nav.Link>}
-                        {user && <Nav.Link href="/profile">Profile</Nav.Link>}
+                        <Nav.Link as={Link} to="/">Home</Nav.Link>
+                        <Navbar.Brand as={Link} to="/">FakeStore</Navbar.Brand>
+                        <Nav.Link as={Link} to="/cart">Cart</Nav.Link>
+                        {user && <Nav.Link as={Link} to="/products">Products</Nav.Link>}
+                        {user && <Nav.Link as={Link} to="/orders">Orders</Nav.Link>}
+                        {user && <Nav.Link as={Link} to="/profile">Profile</Nav.Link>}
                         <Nav.Item>
                             <p>{user?.email}</p>
                         </Nav.Item>
