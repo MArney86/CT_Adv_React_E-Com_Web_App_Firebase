@@ -105,7 +105,7 @@ export const fetchProducts = createAsyncThunk<Product[]>(
 // Async thunk to add a product to Firestore
 export const addProduct = createAsyncThunk<Product, Product>(
     'products/addProduct',
-    async (product: Product, { dispatch }) => {
+    async (product: Product) => {
         try {
             // Use the product's pid as the document ID
             const productDocRef = doc(db, 'products', product.pid.toString());
