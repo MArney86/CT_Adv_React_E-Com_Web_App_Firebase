@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Container from 'react-bootstrap/Container';
@@ -22,6 +22,7 @@ const ProductManagement = () => {
     const currentUser = useSelector((state: RootState) => state.user.currentUser);
     const products = useSelector((state: RootState) => state.products.items);
     const productsStatus = useSelector((state: RootState) => state.products.status);
+    const sortedProducts = useMemo(() => [...products].sort((a, b) => a.pid - b.pid), [products]);
 
     const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
     const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -288,7 +289,7 @@ const ProductManagement = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {products.map((product) => (
+                                {sortedProducts.map((product) => (
                                     <tr key={product.pid}>
                                         <td>
                                             <img 
